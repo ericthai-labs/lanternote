@@ -11,7 +11,7 @@ node tests/run-all.js    # every UI scenario below, on fresh folders in the temp
 ```
 
 `node tests/run-all.js "<path to Lanternote.exe>"` tests a packaged build; `ONLY=editing.js,kanban.js node tests/run-all.js` runs a few.
-On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs both commands on Windows, macOS and Linux.
+On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs both commands on Windows (required), macOS and Linux (experimental for now).
 
 ## Scenarios
 
