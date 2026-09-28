@@ -5,6 +5,8 @@ const fs = require('fs'), path = require('path');
 const dir = process.env.TV, rd = () => JSON.parse(fs.readFileSync(path.join(dir, 'Board.canvas'), 'utf8'));
 const ok = (name, cond, extra = '') => log((cond ? 'PASS ' : 'FAIL ') + name, extra);
 await until("typeof V !== 'undefined' && V.notes.length === 2", 30000);
+// fixed viewport: mouse coordinates must land on the cards whatever the screen size (CI screens are small)
+await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
 ok('canvas listed in the tree', (await ev("g('tree').querySelectorAll('.row.canvas').length")) === 1);
 await ev("document.querySelector('#tree .row.canvas').click()");
 await until("CanvasView.active()", 5000); await sleep(800);

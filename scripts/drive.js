@@ -57,7 +57,7 @@ async function until(expr, ms = 60000) {
     await sleep(250);
     try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page'); } catch { /* starting */ }
   }
-  if (!target) throw new Error('no window');
+  if (!target) throw new Error('no window — the app printed:\n' + (logs.join('').slice(-3000) || '(nothing)'));
   ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((r) => ws.addEventListener('open', r));
   ws.addEventListener('message', (e) => {

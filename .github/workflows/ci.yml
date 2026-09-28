@@ -31,6 +31,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update && sudo apt-get install -y xvfb libgbm1 libnss3 libasound2t64
+          # Ubuntu 24.04 blocks the unprivileged user namespaces Chromium's sandbox needs
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           xvfb-run -a -s "-screen 0 1600x1000x24" node tests/run-all.js
       - name: UI scenarios
         if: runner.os != 'Linux'

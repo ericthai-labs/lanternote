@@ -1,4 +1,6 @@
 const fs = require('fs'), path = require('path');
+// the editor's undo key: Cmd on macOS, Ctrl elsewhere (CDP modifiers: 4 = Meta, 2 = Ctrl)
+const MOD = process.platform === 'darwin' ? 4 : 2;
 const dir = process.env.TV, rd = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const ok = (name, cond, extra = '') => log((cond ? 'PASS ' : 'FAIL ') + name, extra);
 await until("typeof V !== 'undefined' && V.notes.length === 3 && current === 'Home.md'", 30000);
@@ -65,12 +67,12 @@ await sleep(1500);
 await ev("openNote('Alpha.md')"); await until("Ed.path === 'Alpha.md'", 5000);
 const before = rd('Alpha.md');
 await ev("(() => { Ed._cm().focus(); })()");
-for (let i = 0; i < 5; i++) { await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: 2 }); await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: 2 }); }
+for (let i = 0; i < 5; i++) { await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: MOD }); await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: MOD }); }
 await sleep(1500);
 ok('Ctrl+Z in another note does not bring Home text in', rd('Alpha.md') === before && !(await ev("Ed._cm().getValue()")).includes('Home'));
 await ev("openNote('Home.md')"); await until("Ed.path === 'Home.md'", 5000);
 await ev("Ed._cm().focus()");
-await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: 2 }); await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: 2 });
+await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: MOD }); await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'z', code: 'KeyZ', windowsVirtualKeyCode: 90, modifiers: MOD });
 await sleep(1500);
 ok('coming back, Ctrl+Z undoes the last edit of that note', !rd('Home.md').includes('H-EDIT'));
 // 11. earlier versions were kept
