@@ -38,6 +38,8 @@ fs.mkdirSync(path.join(guide, 'img'), { recursive: true });
 fs.writeFileSync(path.join(guide, 'Lanternote-User-Guide.md'), fs.readFileSync(path.join(src, 'docs', 'guide', 'User-Guide.md'), 'utf8').replace(/^version: .*$/m, 'version: ' + version).replace(/\*Version [\d.]+\./, `*Version ${version}.`));
 for (const f of fs.readdirSync(shots)) if (/^g\d+-.*\.png$/.test(f)) fs.copyFileSync(path.join(shots, f), path.join(guide, 'img', f));
 run(require(path.join(src, 'node_modules', 'electron')), ['scripts/render-ads.js', shots, ads, path.join(guide, 'Lanternote-User-Guide.md'), path.join(guide, 'Lanternote-User-Guide.pdf')], { LANTERNOTE_SRC: src });
+// the README pictures in the repository (docs/images) — commit them with the release
+run(require(path.join(src, 'node_modules', 'electron')), ['scripts/readme-images.js', shots, ads]);
 
 if (to) {
   // copy with a few retries: OneDrive may hold a file for a moment

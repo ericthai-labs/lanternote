@@ -1,113 +1,248 @@
-# Lanternote — ghi chú Markdown cho thư mục rất lớn (desktop)
+<div align="center">
 
-© 2026 Eric Thai - Thai Ba Hoa. Giấy phép **PolyForm Noncommercial 1.0.0** — xem `LICENSE.txt`: dùng miễn phí cho cá nhân
-và tổ chức phi lợi nhuận; dùng thương mại (kể cả doanh nghiệp dùng nội bộ) phải xin phép tác giả. Thư viện mã nguồn mở đi kèm: `THIRD-PARTY-NOTICES.txt`
-(tự sinh bởi `scripts/notices.js`, phải đi kèm mọi bản phân phối).
+<img src="docs/images/hero.jpg" alt="Lanternote — your notes, as a galaxy" width="100%">
 
-App desktop độc lập, **không liên quan tới dashboard** (`index.html` / `classic.html`, `APP_REV`).
-Mở một thư mục ghi chú `.md` và đọc, sửa, tìm, vẽ đồ thị.
-Không gửi dữ liệu đi đâu: mọi thứ đọc từ ổ đĩa máy mình, thư viện đóng gói sẵn, chạy không cần mạng.
+# Lanternote
 
-## Dùng
+**A fast, private desktop app for very large folders of Markdown notes.**<br>
+Read, edit, search, query and map 200,000 notes on any Windows PC — no account, no cloud, no graphics card needed.
 
-- **Windows:** tải `Lanternote-x.y.z-portable.exe` (GitHub → Actions → "Lanternote (desktop build)"
-  → Artifacts), chạy trực tiếp, không cần cài, không cần quyền admin.
-- Lần đầu: **Open a folder** → chọn thư mục vault. Lần sau app tự mở lại thư mục + ghi chú cuối.
-- Sửa file bằng app khác / VS Code / OneDrive đồng bộ → app tự nạp lại trong ~1 giây.
+[![Release](https://img.shields.io/github/v/release/ericthai-labs/lanternote?color=f0b541&label=release)](https://github.com/ericthai-labs/lanternote/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows-0f1422)](#download)
+[![Offline](https://img.shields.io/badge/works-offline-2e7d5b)](#privacy)
+[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-c27a12)](LICENSE.txt)
 
-| Phím | Việc |
+[Download](#download) · [Features](#features) · [Performance](#performance) · [User guide](docs/guide/User-Guide.md) · [Build from source](#build-from-source) · [Changelog](CHANGELOG.md)
+
+</div>
+
+<br>
+
+<p align="center">
+  <img src="docs/images/main-window.jpg" alt="The Lanternote main window" width="90%">
+</p>
+
+## Why Lanternote
+
+- **Built for size.** Tested on a real library of 190,000+ notes and 2.5 million links: it reopens in 1–2 seconds and searches in milliseconds.
+- **Runs on any PC.** The link graph and the galaxy are drawn without a graphics card. Portable: one `.exe`, no installation, no admin rights.
+- **Your files stay yours.** Plain `.md` files in a folder you choose. Nothing is uploaded, nothing phones home, everything works offline.
+- **More than a reader.** Live queries, task lists, calendars, Kanban boards, canvases and a Command Center page — all stored as ordinary Markdown.
+- **Works with your AI assistant.** Claude and other MCP assistants can search and, if you allow it, edit your notes — every AI change keeps the old text.
+
+## Features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Command Center
+One page with what matters today — projects, due dates, open tasks, a calendar, recent notes. It is built from an ordinary note you can edit.
+
+<img src="docs/images/command-center.jpg" alt="Command Center">
+</td>
+<td width="50%" valign="top">
+
+### Your notes as a galaxy
+Every star is a note, every arm a folder, and notes you edited this week shine. Zoom in to read names, click a star to open it.
+
+<img src="docs/images/galaxy.jpg" alt="Galaxy of notes">
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### Link graph on any PC
+The **Map** engine lays out hundreds of thousands of notes once, in the background, and draws them like a digital map — no GPU required. A **Live** GPU engine is there when you have one.
+
+<img src="docs/images/graph.jpg" alt="Link graph">
+</td>
+<td valign="top">
+
+### Editing that protects your work
+Auto-save, per-note undo, `[[` and `#` completion, paste images, rename with link updates, and version history. If a file changes on disk while you edit, you choose which version to keep.
+
+<img src="docs/images/editing.jpg" alt="Editor">
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### Search everything, instantly
+Full-text search across every note, accent-insensitive, with `tag:` filters. Quick open (`Ctrl+O`) finds any note by name as you type.
+
+<img src="docs/images/search.jpg" alt="Search">
+</td>
+<td valign="top">
+
+### Live queries
+Tables, lists, task lists and month calendars from ` ```dataview ` blocks, written in the Dataview query language — refreshed as your notes change.
+
+<img src="docs/images/queries.jpg" alt="Live queries">
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### Tasks and calendars
+Collect tasks from every note, sort them by due date and tick them right in the results — the note is updated on the spot.
+
+<img src="docs/images/tasks.jpg" alt="Tasks">
+</td>
+<td valign="top">
+
+### Kanban boards
+Drag cards between lanes. Boards are plain Markdown notes in the common board format, so they stay readable anywhere.
+
+<img src="docs/images/kanban.jpg" alt="Kanban board">
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### Canvas
+Lay out notes, text and links on an infinite board. Canvases use the open [JSON Canvas](https://jsoncanvas.org) format.
+
+<img src="docs/images/canvas.jpg" alt="Canvas">
+</td>
+<td valign="top">
+
+### Connect an AI assistant
+Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run queries, list tasks and — only if you allow it — write. Limit it to chosen folders; every change is logged and reversible.
+
+<img src="docs/images/ai-connection.jpg" alt="AI connection settings">
+</td>
+</tr>
+</table>
+
+**Also included:** wiki links with headings, blocks and aliases · embeds (`![[note]]`, images, audio, video) · backlinks and outline · front-matter properties · tags and nested tags · callouts · highlights and comments · Mermaid diagrams · note templates · daily notes · image viewer · command palette · print to PDF · light and dark themes.
+
+<p align="center">
+  <img src="docs/images/light-theme.jpg" alt="Light theme" width="80%">
+</p>
+
+## Performance
+
+Measured on a real-world library of **190,522 notes, 2.49 million links (728 MB)**, and on a made-up 139,000-note folder used for all pictures in this README.
+
+| Task | Time |
 |---|---|
-| Ctrl+O hoặc Ctrl+K | Mở nhanh ghi chú theo tên (gõ tắt, ví dụ `adp26` → "Audit plan 2026") |
-| Ctrl+Shift+F | Tìm trong toàn bộ nội dung; `tag:#audit` để lọc theo tag |
-| Ctrl+G / Ctrl+Shift+G | Đồ thị toàn bộ ghi chú / đồ thị quanh ghi chú đang mở |
-| Alt+← / Alt+→ | Lùi / tiến |
-| Ctrl+\\ / Ctrl+Shift+\\ | Ẩn/hiện cột file / cột outline–backlinks |
-| Ctrl+Shift+D | Sáng / tối |
-| Ctrl+P | In / lưu PDF ghi chú đang mở |
-| Ctrl+R | Nạp lại thư mục |
+| First open (no cache) | ≈ 17–19 s |
+| Reopen (cached) | ≈ 1–2 s — changes are checked in the background |
+| Full-text search | 20–130 ms |
+| Quick open by name | ≈ 25 ms |
+| Live query over the whole library | ≈ 0.1 s |
+| Galaxy — one frame | ≈ 1 ms |
+| Link graph — build | ≈ 0.15 s |
 
-## Cú pháp Markdown hỗ trợ (wiki link, nhúng, callout, front matter…)
+<details>
+<summary><b>How it stays fast</b></summary>
 
-`[[Ghi chú]]`, `[[Ghi chú|tên hiển thị]]`, `[[Ghi chú#Mục]]`, `[[Ghi chú#^block]]`; nhúng
-`![[Ghi chú]]`, `![[Ghi chú#Mục]]`, `![[ảnh.png|300]]`, audio/video; link Markdown thường
-`[x](thu%20muc/file.md)`; front matter (hiện thành bảng Properties); `#tag` và `#tag/con`;
-callout `> [!warning]`, `> [!tip]-` (gập được); `==highlight==`; `%%comment%%` (ẩn);
-task list; bảng; sơ đồ ` ```mermaid `. Backlinks, outgoing links, outline ở cột phải.
+- **A worker thread owns the index** (`indexer.js`): it reads and parses every note, keeps a compact search index (accent-insensitive, 50 MB for the library above) and answers searches and queries. The window only holds a small index — paths plus a `Uint32Array` of links — and reads a note's text when you open it.
+- **Disk cache** (`index-cache`): parsed notes and the resolved link graph are cached, so a reopen shows the folder at once and only `stat`s files in the background.
+- **Incremental updates**: editing, adding or deleting a file re-reads only that file. Changes made by other apps or by sync tools appear within about a second.
+- **Graph "Map" engine** (`layout-worker.js`, `src/atlas.js`): the layout is computed once (Pivot MDS plus neighbour smoothing) and cached; drawing uses level of detail on a 2D canvas, so an idle graph costs no CPU.
+- **Graph "Live" engine**: [cosmos.gl](https://github.com/cosmosgl/graph) runs both the force layout and the drawing on the GPU. Links of "hub" notes with more than 1,000 links are hidden by default — one note with 72,000 backlinks alone drops the frame rate from ~120 to ~19 FPS.
+- Limits: 1,000,000 files; up to 1.5 GB of text kept for search (beyond that, search covers part of the folder and says so).
 
-**Graph view** (nút ⚹), hai engine (ô *Engine*):
-- **Map (any PC)** — mặc định. Bố cục tính một lần ở nền (Pivot MDS + làm mượt theo hàng xóm,
-  `layout-worker.js`), lưu cache; vẽ bằng Canvas 2D theo mức chi tiết như bản đồ số: xa thì một ảnh
-  mật độ + tên thư mục, gần thì từng ghi chú/link trong khung nhìn. Không cần card đồ hoạ, đứng yên
-  không tốn CPU. Kéo/zoom chỉ dịch ảnh chụp khung trước, dừng tay mới vẽ lại nét.
-- **Live (GPU)** — cosmos.gl, bố cục chuyển động; cần card đồ hoạ thật.
+</details>
 
- "All notes" vẽ toàn bộ vault — màu theo thư mục cấp 1, cỡ theo số link;
-"This note" vẽ các ghi chú quanh ghi chú đang mở (độ sâu 1–3, tối đa 3.000 nút). Bấm một nút để
-mở ghi chú; ô "Highlight notes by name" tô sáng + zoom tới các ghi chú khớp; bấm tên thư mục ở
-chú giải để tô sáng cả thư mục. Tìm/zoom sẽ tạm dừng bố cục (bấm Resume để chạy tiếp).
-**Hub links** (mặc định "hide above 1,000"): không vẽ link của các ghi chú có hơn 1.000 link — một
-ghi chú kiểu `CAGE FAPE3` (72.404 backlink) làm bố cục GPU tụt còn ~19 FPS; bỏ link của 185 hub
-này thì ~120 FPS. Nút hub vẫn hiện và vẫn to theo số link thật. Khi đồ thị lớn đang chạy bố cục,
-chỉ nhãn nút đang rê chuột được vẽ; nhãn đầy đủ hiện khi bố cục dừng (Pause hoặc tự nguội).
+## Download
 
-**Soạn thảo** (1.3): `Ctrl+E` đọc ⇄ sửa (CodeMirror 6), tự lưu, hoàn tác riêng từng ghi chú
-(`Ctrl+Z`/`Ctrl+Y`), gợi ý `[[` và `#`, `Ctrl+B/I/K`, `Ctrl+Enter` checkbox, dán ảnh → tự lưu tệp đính kèm.
-Đổi tên/di chuyển tự sửa link; xoá vào Thùng rác; bấm link chưa có để tạo; ghi chú hằng ngày;
-Command palette `Ctrl+P`; menu chuột phải trên cây thư mục. File bị sửa bên ngoài trong lúc đang sửa
-→ hỏi giữ bản nào. Khôi phục phiên bản cũ (bản sao ≤ 5 phút/lần, giữ 14 ngày, nằm ngoài vault).
-**Xem ảnh** (1.8): bấm ảnh trong ghi chú hoặc file ảnh trong cây thư mục → trình xem toàn màn hình
-(zoom, kéo, xoay, ← → lướt ảnh, Show in folder, Open with).
-**Cài đặt** `Ctrl+,`: giao diện, trình soạn thảo, vị trí ghi chú mới/ảnh, đổi tên & link, thư mục bỏ qua,
-ghi chú hằng ngày (thư mục, tên, mẫu), đồ thị, khôi phục.
+1. Download `Lanternote-<version>-portable.exe` from the [latest release](https://github.com/ericthai-labs/lanternote/releases/latest).
+2. Run it — no installation and no admin rights. For a faster start, use the `.zip` instead and run `Lanternote.exe` inside it.
+3. Click **Open a folder** and choose your notes. Next time Lanternote reopens the same folder and note.
 
-Chưa có: công thức toán (LaTeX), Dataview, canvas, plugin, xem trực tiếp (live preview), nhiều tab.
+> [!NOTE]
+> The app is not code-signed yet, so Windows SmartScreen may warn you: choose **More info → Run anyway**.
+> Settings, the index cache and recovery copies are kept per PC in `%APPDATA%\Lanternote`.
 
-## Vault lớn (đã đo trên thư viện ATA: 190.522 ghi chú, 2,49 triệu link, 728 MB)
+Press **F1** in the app for the built-in guide, or read the illustrated [user guide](docs/guide/User-Guide.md).
 
-| Việc | Thời gian |
+<details>
+<summary><b>Keyboard shortcuts</b></summary>
+
+| Keys | Action |
 |---|---|
-| Mở lần đầu (chưa có cache) | ~17–19 s |
-| Mở lại (có cache) | ~1–2 s, kiểm tra thay đổi chạy nền |
-| Tìm toàn văn | 20–130 ms (chỉ mục từ 50 MB, có tìm không dấu) |
-| Mở nhanh (Ctrl+O) | ~25 ms |
-| Dựng đồ thị toàn bộ | ~0,15 s (bố cục tiếp tục trên GPU) |
-| Đồ thị khi bố cục đang chạy | ~120 FPS (RTX 5070 Ti, hub links ẩn); ~19 FPS nếu hiện tất cả |
+| `F1` | In-app guide |
+| `Ctrl+O` | Quick open |
+| `Ctrl+Shift+F` | Search every note (`tag:#name` to filter) |
+| `Ctrl+Shift+H` | Command Center |
+| `Ctrl+G` / `Ctrl+Shift+G` | Graph of all notes / around this note |
+| `Ctrl+N` | New note |
+| `Ctrl+E` | Read ⇄ edit |
+| `Alt+E` | Insert a template |
+| `Ctrl+P` | Command palette |
+| `Ctrl+,` | Settings |
+| `Ctrl+Shift+D` | Light / dark |
+| `Alt+←` / `Alt+→` | Back / forward |
+| `Ctrl+−` / `Ctrl+=` / `Ctrl+0` | Zoom out / in / reset |
+| `Esc` | Close a dialog, leave the galaxy |
 
-Cách làm (tham khảo cosmos.gl/Cosmograph, sigma.js):
-- **Worker index** (`indexer.js`, worker thread): đọc, phân tích link/tag, giữ bản chữ thường của mọi
-  ghi chú để tìm kiếm (`Buffer.indexOf`), trả lời tìm kiếm/snippet. Cửa sổ chỉ nhận chỉ mục gọn
-  (danh sách đường dẫn + mảng link `Uint32Array`), nội dung ghi chú đọc khi mở.
-- **Cache trên đĩa** (`userData/index-cache/*.bin`): lưu kết quả phân tích + đồ thị đã phân giải;
-  mở lại thì hiện ngay rồi mới `stat` từng file ở nền, file đổi lúc app tắt được cập nhật sau.
-- **Cập nhật tăng dần**: sửa/thêm/xoá file chỉ đọc lại đúng file đó.
-- **Giao diện**: cây thư mục dựng khi mở thư mục (trang 1.000 dòng), backlinks/links dạng CSR,
-  danh sách dài giới hạn 500 dòng.
-- **Đồ thị**: [cosmos.gl](https://github.com/cosmosgl/graph) (MIT, OpenJS Foundation) — cả bố cục
-  lực lẫn vẽ đều chạy trên GPU (WebGL 2), chịu được hàng trăm nghìn nút. Nhãn vẽ trên canvas phủ,
-  tránh chồng chéo. Máy không có WebGL 2 thì đồ thị báo lỗi, phần còn lại vẫn chạy.
-- Giới hạn: 1.000.000 file; phần text giữ cho tìm kiếm tối đa 1,5 GB (vượt thì tìm một phần và báo).
+</details>
 
-## Phát triển
+## Privacy
 
-Không build trong thư mục được OneDrive/Dropbox đồng bộ (`node_modules` / `dist*` rất nặng).
+Lanternote reads and writes only the folder you open and its own settings folder. It has no account, no telemetry and no update check; all libraries are bundled, so it runs without a network connection.
 
-```
+The only exception is one you turn on yourself: when you connect an AI assistant, the notes it reads are sent to that assistant's provider. You can make the connection read-only and limit it to chosen folders.
+
+## Build from source
+
+Requires [Node.js](https://nodejs.org) 22 or later and Git. Build outside folders synced by OneDrive or Dropbox — `node_modules` and the builds are large.
+
+```bash
+git clone https://github.com/ericthai-labs/lanternote.git
 cd lanternote
-npm install        # tự copy marked / DOMPurify / mermaid vào src/vendor
-npm start          # chạy thử
-npm run dist:win   # build dist/Lanternote-x.y.z-portable.exe (chạy được cả trên Linux)
+npm ci          # installs dependencies and bundles the editor into src/vendor
+npm start       # run from source
+npm run dist:win   # portable .exe and .zip in dist/
 ```
 
-Cấu trúc: `main.js` (theo dõi thư mục, chuyển yêu cầu cho worker, giao thức `vault://` phục vụ ảnh —
-chặn đường dẫn thoát ra ngoài vault), `indexer.js` (worker: đọc, cache, tìm kiếm), `preload.js`
-(cầu nối IPC), `src/` (giao diện: `core.js` phân tích link dùng chung với worker, `app.js`,
-`graph.js`, `style.css`).
+<details>
+<summary><b>Project layout and tests</b></summary>
 
-Mỗi lần tăng `version` trong `package.json` phải thêm mục `## x.y.z` vào **`CHANGELOG.md`**
-(tiếng Anh, không ghi ngày; Added / Changed / Fixed); `npm run dist:*` tự kiểm tra và dừng nếu thiếu.
+| Path | What it does |
+|---|---|
+| `main.js`, `preload.js` | Main process: file access, folder watching, IPC, the `vault://` protocol for attachments (paths cannot escape the folder) |
+| `indexer.js`, `search-index.js` | Worker thread: parsing, disk cache, search, queries |
+| `layout-worker.js`, `src/atlas.js` | Graph "Map" engine |
+| `src/graph.js` | Graph "Live" engine (cosmos.gl) |
+| `src/app.js`, `src/edit.js`, `editor/` | Reader and editor (CodeMirror 6) |
+| `src/command.js`, `src/dataview.js`, `src/dvview.js`, `src/kanban.js`, `src/canvas.js` | Command Center, queries, Kanban, Canvas |
+| `mcp/lanternote-mcp.js` | MCP server for AI assistants (no extra dependencies) |
+| `tests/`, `scripts/drive.js` | Automated tests that drive the app through DevTools |
 
-Kiểm thử hiệu năng / tự động:
+```bash
+node tests/mcp.js                                    # AI connection, 33 checks
+node scripts/drive.js <test-folder> tests/editing.js # UI scenarios — see tests/README.md
+node scripts/bench-index.js <folder> <words>         # index and search timings
+npm run media -- <work-folder>                        # rebuild guide, adverts and README pictures
 ```
-node scripts/bench-index.js "<thư mục vault>" hydraulic pump   # đo index cold/warm + tìm kiếm
-node scripts/drive.js "<thư mục vault>" <kịch-bản.js> [thư-mục-ảnh]  # chạy app, điều khiển qua DevTools
-```
+
+Every version bump needs a `## x.y.z` entry in [CHANGELOG.md](CHANGELOG.md); `npm run dist:*` stops without one. Run UI tests only on throw-away folders — they create, rename and delete files.
+
+</details>
+
+## Contributing
+
+Bug reports and suggestions are welcome in [Issues](https://github.com/ericthai-labs/lanternote/issues). Pull requests are welcome too; by submitting one you agree that it may be released as part of Lanternote under its licence.
+
+## License
+
+Lanternote is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE.txt):
+
+- ✅ Free for personal use, study and hobby projects, and for noncommercial organisations (charities, schools, public bodies).
+- ✅ You may read the code, change it and share changes for noncommercial purposes, keeping the copyright notice.
+- ❌ Commercial use — including internal use at a company — needs a separate licence. [Open an issue](https://github.com/ericthai-labs/lanternote/issues) to ask.
+
+Bundled open-source libraries keep their own licences, listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+
+## Acknowledgements
+
+Lanternote stands on excellent open-source work, including [Electron](https://www.electronjs.org), [CodeMirror](https://codemirror.net), [cosmos.gl](https://github.com/cosmosgl/graph), [marked](https://marked.js.org), [DOMPurify](https://github.com/cure53/DOMPurify) and [Mermaid](https://mermaid.js.org).
+
+<div align="center">
+<br>
+<sub>© 2026 Eric Thai - Thai Ba Hoa · Pictures in this README are taken on a made-up folder of notes.</sub>
+</div>
