@@ -61,10 +61,12 @@
     },
     "fileAssociations": [
       {
-        "ext": [
-          "md",
-          "markdown"
-        ],
+        "ext": "md",
+        "name": "Markdown",
+        "role": "Viewer"
+      },
+      {
+        "ext": "markdown",
         "name": "Markdown",
         "role": "Viewer"
       }
