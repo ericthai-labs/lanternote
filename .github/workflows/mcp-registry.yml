@@ -1,0 +1,35 @@
+name: Publish to the MCP Registry
+
+# Publishes server.json (built by scripts/make-mcpb.js) to registry.modelcontextprotocol.io
+# as io.github.ericthai-labs/lanternote. Authenticates with GitHub OIDC: no secrets, no
+# personal account. Runs when a release is published (the .mcpb is already attached then).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check that the bundle in server.json is on the release and matches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(jq -r '.packages[0].identifier' server.json)
+          want=$(jq -r '.packages[0].fileSha256' server.json)
+          curl -sfL "$url" -o bundle.mcpb
+          got=$(sha256sum bundle.mcpb | cut -d' ' -f1)
+          echo "bundle: $url"; echo "sha256: $got"
+          [ "$got" = "$want" ] || { echo "::error::server.json fileSha256 does not match the released bundle — rerun scripts/make-mcpb.js and upload that file"; exit 1; }
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Authenticate (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+      - name: Publish
+        run: ./mcp-publisher publish

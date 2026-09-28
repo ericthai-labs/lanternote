@@ -91,7 +91,7 @@ try {
   const sha = crypto.createHash('sha256').update(fs.readFileSync(bundle)).digest('hex');
   // MCP Registry entry (published with: mcp-publisher login github && mcp-publisher publish)
   const server = {
-    $schema: 'https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json',
+    $schema: 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
     name: 'io.github.ericthai-labs/lanternote',
     title: 'Lanternote',
     description: 'Search, read and query large folders of Markdown notes (200,000+). Optional, reversible edits.',
@@ -101,7 +101,6 @@ try {
     packages: [{
       registryType: 'mcpb',
       identifier: `${REPO}/releases/download/v${version}/lanternote-${version}.mcpb`,
-      version,
       fileSha256: sha,
       transport: { type: 'stdio' },
     }],
