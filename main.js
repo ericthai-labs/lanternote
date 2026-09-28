@@ -158,27 +158,69 @@ function watchVault(root) {
   if (watcher) { try { watcher.close(); } catch {} watcher = null; }
   let timer = null;
   const changed = new Set();
+  const skipped = (f) => {
+    if (f.split('/').some((seg) => seg.startsWith('.') || SKIP_DIRS.has(seg))) return true;
+    const fl = f.toLowerCase();
+    return excluded().some((x) => fl === x || fl.startsWith(x + '/'));
+  };
+  const onChange = (f) => { // f: path relative to the vault, with '/'
+    if (skipped(f)) return;
+    changed.add(f);
+    clearTimeout(timer);
+    // OneDrive can touch thousands of files in a burst: wait for quiet.
+    timer = setTimeout(async () => {
+      const list = [...changed]; changed.clear();
+      try {
+        const res = await ask('update', { changed: list });
+        if (res && win && !win.isDestroyed()) win.webContents.send('vault:changed', res);
+      } catch (e) { console.warn('Update failed:', e.message); }
+    }, 700);
+  };
   try {
-    watcher = fs.watch(root, { recursive: true }, (_ev, file) => {
-      if (!file) return;
-      const f = toPosix(String(file));
-      if (f.split('/').some((seg) => seg.startsWith('.') || SKIP_DIRS.has(seg))) return;
-      const fl = f.toLowerCase();
-      if (excluded().some((x) => fl === x || fl.startsWith(x + '/'))) return;
-      changed.add(f);
-      clearTimeout(timer);
-      // OneDrive can touch thousands of files in a burst: wait for quiet.
-      timer = setTimeout(async () => {
-        const list = [...changed]; changed.clear();
-        try {
-          const res = await ask('update', { changed: list });
-          if (res && win && !win.isDestroyed()) win.webContents.send('vault:changed', res);
-        } catch (e) { console.warn('Update failed:', e.message); }
-      }, 700);
-    });
+    if (process.platform === 'linux') watcher = watchTree(root, onChange, skipped);
+    else watcher = fs.watch(root, { recursive: true }, (_ev, file) => { if (file) onChange(toPosix(String(file))); });
   } catch (e) {
     console.warn('File watching unavailable:', e.message); // the Reload button still works
   }
+}
+
+// Linux: recursive fs.watch in Electron's Node misses changes, so watch every
+// folder on its own (inotify) and add watchers for folders created later.
+// Returns an object with close(), like fs.watch. If the system's watch limit
+// (fs.inotify.max_user_watches) is reached, the rest of the tree is not watched
+// and the Reload button picks those changes up.
+function watchTree(root, onChange, skipped) {
+  const watchers = new Map(); // relative folder → FSWatcher
+  let full = false;
+  const add = (rel) => {
+    if (watchers.has(rel) || full) return;
+    let w;
+    try {
+      w = fs.watch(rel ? path.join(root, rel) : root, (_ev, name) => {
+        if (!name) return;
+        const f = rel ? rel + '/' + toPosix(String(name)) : toPosix(String(name));
+        onChange(f);
+        if (!watchers.has(f)) fs.stat(path.join(root, f), (err, st) => { if (!err && st.isDirectory() && !skipped(f)) walk(f); }); // a new folder
+      });
+    } catch (e) {
+      if (e.code === 'ENOSPC' || e.code === 'EMFILE') { full = true; console.warn('File watching limit reached; use Reload for folders not watched:', e.message); }
+      return;
+    }
+    w.on('error', () => { try { w.close(); } catch {} watchers.delete(rel); });
+    watchers.set(rel, w);
+  };
+  const walk = (rel) => {
+    add(rel);
+    let entries = [];
+    try { entries = fs.readdirSync(rel ? path.join(root, rel) : root, { withFileTypes: true }); } catch { return; }
+    for (const d of entries) {
+      if (!d.isDirectory()) continue;
+      const sub = rel ? rel + '/' + d.name : d.name;
+      if (!skipped(sub)) walk(sub);
+    }
+  };
+  walk('');
+  return { close: () => { for (const w of watchers.values()) { try { w.close(); } catch {} } watchers.clear(); } };
 }
 
 async function openVault(dir, openFile) {

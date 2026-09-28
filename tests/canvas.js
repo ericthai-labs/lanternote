@@ -77,7 +77,8 @@ await ev("Ed.toggleTo('read')");
 
 // a [[link]] inside a card opens the note
 await ev("openNote('Board.canvas')"); await until("CanvasView.active()", 5000); await sleep(600);
-await ev("g('cvLayer').querySelector('[data-id=t1] a.internal').click()"); await sleep(800);
+await ev("g('cvLayer').querySelector('[data-id=t1] a.internal').click()");
+await until("current !== 'Board.canvas'", 8000).catch(() => {}); // opening is async: wait for it (slow CI machines)
 ok('a [[link]] inside a card opens the note', (await ev("current")) !== 'Board.canvas', await ev("current"));
 
 // a new canvas
