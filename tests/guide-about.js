@@ -1,0 +1,14 @@
+const ok = (name, cond, extra = '') => log((cond ? 'PASS ' : 'FAIL ') + name, extra);
+await until("typeof V !== 'undefined' && !!current", 30000);
+await ev("openGuide()"); await sleep(600);
+ok('guide opens with its outline', (await ev("g('outline').children.length")) >= 10, await ev("g('outline').children.length + ' headings'"));
+ok('callouts and tables render', (await ev("g('note').querySelectorAll('.callout').length")) >= 2 && (await ev("g('note').querySelectorAll('table').length")) >= 4);
+ok('no broken note links inside the guide', (await ev("g('note').querySelectorAll('a.internal, .unresolved-embed').length")) === 0);
+await shot('h1-guide');
+await ev("Prefs.open('About')"); await sleep(400);
+ok('About has no folder paths', !/[A-Z]:\\/.test(await ev("g('setBody').innerText")));
+await shot('h2-about');
+await ev("Prefs.open('Advanced')"); await sleep(300);
+ok('Advanced has open-folder, problem log and reset', (await ev("g('setBody').querySelectorAll('[data-resetall]').length")) === 1 && /Problem log/.test(await ev("g('setBody').textContent")) && (await ev("g('setBody').querySelectorAll('[data-open]').length")) >= 1);
+await ev("g('settings').hidden = true; openNote('Home.md')"); await sleep(500);
+ok('a normal note opens again after the guide', (await ev("current")) === 'Home.md');

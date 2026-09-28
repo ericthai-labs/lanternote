@@ -1,0 +1,12 @@
+const ok = (name, cond, extra = '') => log((cond ? 'PASS ' : 'FAIL ') + name, extra);
+await until("typeof V !== 'undefined' && current === 'Home.md'", 30000);
+ok('window title shows the app name', /Lanternote/.test(await ev("document.title")));
+await ev("Ed.toggleTo('edit')"); await until("Ed.path === 'Home.md'", 5000);
+ok('undo button disabled before any edit', await ev("g('btnUndo').disabled"));
+await ev("(() => { const v = Ed._cm().view; v.dispatch({ changes: { from: v.state.doc.length, insert: 'ADDED' } }); })()");
+ok('undo button enabled after an edit', !(await ev("g('btnUndo').disabled")));
+await ev("g('btnUndo').click()");
+ok('undo button removes the edit', !(await ev("Ed._cm().getValue()")).includes('ADDED') && !(await ev("g('btnRedo').disabled")));
+await ev("g('btnRedo').click()");
+ok('redo button brings it back', (await ev("Ed._cm().getValue()")).includes('ADDED'));
+await sleep(300); await shot('u1-toolbar');

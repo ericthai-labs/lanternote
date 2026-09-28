@@ -1,0 +1,10 @@
+const ok = (name, cond, extra = '') => log((cond ? 'PASS ' : 'FAIL ') + name, extra);
+await until("typeof V !== 'undefined' && !!current", 30000);
+await ev("openDoc('changelog')"); await sleep(600);
+ok('changelog opens with one heading per version', (await ev("g('outline').querySelectorAll('a').length")) >= 10, await ev("[...g('outline').querySelectorAll('a')].slice(1,4).map(a=>a.textContent).join(' | ')"));
+ok('no dead links in it', (await ev("g('note').querySelectorAll('a.internal').length")) === 0);
+await shot('cl1-changelog');
+await ev("Ed.palette(); g('palInput').value = 'what'; g('palInput').oninput();");
+ok('palette has the command', /What's new/.test(await ev("g('palList').textContent")));
+await ev("g('palette').hidden = true; openGuide()"); await sleep(400);
+ok('guide still opens', /Hướng dẫn/.test(await ev("g('note').textContent")));

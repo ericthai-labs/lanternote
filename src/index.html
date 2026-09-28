@@ -1,0 +1,232 @@
+<!doctype html>
+<!-- Lanternote — Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' vault: data: https: http:; media-src vault:; font-src 'self' data:">
+<title>Lanternote</title>
+<link rel="stylesheet" href="style.css">
+<script src="vendor/marked.min.js"></script>
+<script src="vendor/purify.min.js"></script>
+<script src="core.js"></script>
+</head>
+<body>
+<header class="top">
+  <button class="icon" id="btnLeft" title="Files (Ctrl+\)">☰</button>
+  <button class="icon" id="btnBack" title="Back (Alt+←)">‹</button>
+  <button class="icon" id="btnFwd" title="Forward (Alt+→)">›</button>
+  <button class="switch" id="btnSwitch" title="Quick open (Ctrl+O)"><span>Quick open…</span><kbd>Ctrl O</kbd></button>
+  <span class="grow"></span>
+  <button class="icon" id="btnHome" title="Command Center (Ctrl+Shift+H)">⌂</button>
+  <button class="icon" id="btnEdit" title="Reading / editing (Ctrl+E)">✎</button>
+  <button class="icon" id="btnGraph" title="Graph view (Ctrl+G · Ctrl+Shift+G for local)">⚹</button>
+  <button class="icon" id="btnReload" title="Reload folder (Ctrl+R)">⟳</button>
+  <button class="icon" id="btnTheme" title="Light / dark (Ctrl+Shift+D)">◐</button>
+  <button class="icon" id="btnSettings" title="Settings (Ctrl+,)">⚙</button>
+  <button class="icon" id="btnRight" title="Outline &amp; backlinks (Ctrl+Shift+\)">⋮</button>
+</header>
+
+<div class="layout" id="layout">
+  <aside class="left" id="left">
+    <div class="vault-head">
+      <div class="vault-name" id="vaultName">No folder open</div>
+      <button class="link" id="btnOpen">Open folder…</button>
+    </div>
+    <nav class="tabs">
+      <button data-tab="files" class="on">Files</button>
+      <button data-tab="search">Search</button>
+      <button data-tab="tags">Tags</button>
+    </nav>
+    <section class="pane on" id="pane-files">
+      <input id="fileFilter" class="field" placeholder="Filter file names">
+      <div id="tree" class="tree"></div>
+    </section>
+    <section class="pane" id="pane-search">
+      <input id="searchInput" class="field" placeholder="Search text — tag:#audit also works">
+      <div id="searchInfo" class="muted small"></div>
+      <div id="searchResults"></div>
+    </section>
+    <section class="pane" id="pane-tags">
+      <div id="tagList"></div>
+    </section>
+    <div id="status" class="status muted small"></div>
+  </aside>
+
+  <main class="main" id="main">
+    <div id="welcome" class="welcome">
+      <h1>Lanternote</h1>
+      <p>Reads and edits a folder of Markdown notes: wiki links, backlinks, tags, callouts, embedded notes and images. Nothing is uploaded — files stay on this computer.</p>
+      <p><button class="primary" id="btnOpen2">Open a folder</button> <a href="#" id="guideLink" class="guide-link">User guide (F1)</a></p>
+      <div id="loading" class="muted small"></div>
+      <p class="muted small author-line">© 2026 Eric Thai - Thai Ba Hoa · Noncommercial licence · <a href="#" id="aboutLink">About &amp; licence</a></p>
+      <div id="recent"></div>
+    </div>
+    <article id="note" class="note" hidden></article>
+    <section id="canvasPane" class="canvas-pane" hidden>
+      <div class="cv-bar">
+        <span class="cv-title" id="canvasTitle"></span><span id="canvasState" class="muted small"></span>
+        <span class="grow"></span>
+        <button class="tool" id="cvText" title="New text card (or double-click the board)">+ Card</button>
+        <button class="tool" id="cvFile" title="Add a note, picture or file">+ Note / file</button>
+        <button class="tool" id="cvLink" title="Add a web page">+ Link</button>
+        <button class="tool" id="cvGroup" title="Put the selected cards in a group">Group</button>
+        <select id="cvColour" class="tool" title="Colour of the selected cards or arrow">
+          <option value="">Colour…</option><option value="1">Red</option><option value="2">Orange</option><option value="3">Yellow</option>
+          <option value="4">Green</option><option value="5">Cyan</option><option value="6">Purple</option><option value="0">No colour</option>
+        </select>
+        <button class="tool" id="cvDelete" title="Delete the selection (Delete)">Delete</button>
+        <button class="tool" id="cvUndo" title="Undo (Ctrl+Z)" disabled>↶</button>
+        <button class="tool" id="cvRedo" title="Redo (Ctrl+Y)" disabled>↷</button>
+        <span id="cvZoom" class="muted small cv-zoom"></span>
+        <button class="tool" id="cvFit" title="Show everything (Shift+1)">Fit</button>
+      </div>
+      <div class="cv-viewport" id="cvViewport" tabindex="0">
+        <div class="cv-layer" id="cvLayer"></div>
+        <div class="cv-layer cv-temp-layer" id="cvTempLayer"><svg class="cv-edges" width="1" height="1"><g id="cvTemp"></g></svg></div>
+        <div class="cv-empty muted" id="cvEmpty" hidden>Empty canvas — double-click anywhere to add a card, or use the buttons above.</div>
+      </div>
+    </section>
+    <section id="boardPane" class="board-pane" hidden tabindex="-1">
+      <div class="cv-bar">
+        <span class="cv-title" id="kbTitle"></span><span id="kbState" class="muted small"></span>
+        <span class="grow"></span>
+        <input id="kbFilter" class="field kb-filter" placeholder="Filter cards…">
+        <span id="kbInfo" class="muted small"></span>
+        <button class="tool" id="kbUndo" title="Undo (Ctrl+Z)" disabled>↶</button>
+        <button class="tool" id="kbRedo" title="Redo (Ctrl+Y)" disabled>↷</button>
+        <button class="tool" id="kbText" title="Edit the board as Markdown (Ctrl+E)">Markdown</button>
+      </div>
+      <div class="kb-lanes" id="kbLanes"></div>
+    </section>
+    <section id="editPane" class="edit-pane" hidden>
+      <div class="edit-head">
+        <div class="crumbs edit-bar">
+          <span id="editCrumbs"></span><span id="editState" class="muted"></span>
+          <span class="grow"></span>
+          <button class="tool" id="btnUndo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+          <button class="tool" id="btnRedo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+          <button class="tool" id="btnVersions" title="Earlier versions of this note">🕘 Versions</button>
+        </div>
+        <input id="editTitle" class="inline-title title-input" spellcheck="false" title="Rename the note">
+      </div>
+      <div id="conflict" class="conflict" hidden>
+        This note was changed outside Lanternote while you were editing it.
+        <button id="keepMine" class="small-btn">Keep my version</button>
+        <button id="loadTheirs" class="small-btn">Load the other version</button>
+      </div>
+      <div id="editorHost" class="editor-host"></div>
+    </section>
+  </main>
+
+  <section class="graph-view" id="graphView" hidden>
+    <div class="graph-bar">
+      <span class="seg"><button data-gmode="global" class="on">All notes</button><button data-gmode="local">This note</button></span>
+      <label class="muted small" title="Map: laid out once and cached, drawn without a graphics card — fast on any PC. Live: animated layout on the GPU, needs a real graphics card.">Engine <select id="graphEngine"><option value="map" selected>Map (any PC)</option><option value="gpu">Live (GPU)</option></select></label>
+      <label class="muted small">Depth <select id="graphDepth" disabled><option>1</option><option>2</option><option>3</option></select></label>
+      <label class="muted small"><input type="checkbox" id="graphOrphans" checked> Unlinked notes</label>
+      <label class="muted small" title="Links of notes that have more links than this are not drawn in 'All notes'. Hubs with tens of thousands of links make the layout crawl.">Hub links <select id="graphHubs"><option value="200">hide above 200</option><option value="1000" selected>hide above 1,000</option><option value="5000">hide above 5,000</option><option value="0">show all (slow)</option></select></label>
+      <input id="graphFind" class="field" placeholder="Highlight notes by name…">
+      <button id="graphRun" class="small-btn">Pause</button>
+      <button id="graphFit" class="small-btn">Fit</button>
+      <span id="graphInfo" class="muted small"></span>
+    </div>
+    <div class="graph-stage">
+      <div id="graphCanvas" class="graph-canvas"></div>
+      <canvas id="graphLabels" class="graph-labels"></canvas>
+    </div>
+    <div id="graphLegend" class="graph-legend"></div>
+  </section>
+
+  <section class="cc-view" id="ccView" hidden>
+    <canvas id="ccSky" class="cc-sky" hidden></canvas>
+    <div id="ccLegend" class="cc-legend"></div>
+    <div class="cc-scroll">
+      <header class="cc-head">
+        <h1 id="ccTitle" class="cc-title">Command Center</h1>
+        <div id="ccDate" class="cc-date"></div>
+        <div id="ccSource" class="cc-source"></div>
+      </header>
+      <div id="ccBody"></div>
+      <nav class="cc-dock">
+        <button data-cc-act="galaxy" title="Explore the galaxy: every star is a note (Esc to come back)"><span>✦</span>Galaxy</button>
+        <button data-cc-act="open" title="Quick open (Ctrl+O)"><span>⌕</span>Open</button>
+        <button data-cc-act="search" title="Search in all notes (Ctrl+Shift+F)"><span>☰</span>Search</button>
+        <button data-cc-act="graph" title="Graph of all notes (Ctrl+G)"><span>⚹</span>Graph</button>
+        <button data-cc-act="note" title="New note (Ctrl+N)"><span>＋</span>New note</button>
+        <button data-cc-act="daily" title="Today's daily note"><span>◷</span>Today</button>
+        <button data-cc-act="edit" title="Edit the note this page is built from"><span>✎</span>Layout</button>
+        <button data-cc-act="settings" title="Background and layout note"><span>⚙</span>Settings</button>
+      </nav>
+    </div>
+  </section>
+
+  <aside class="right" id="right">
+    <details open><summary>Outline</summary><div id="outline" class="outline"></div></details>
+    <details open><summary>Backlinks <span id="blCount" class="count"></span></summary><div id="backlinks"></div></details>
+    <details><summary>Outgoing links <span id="olCount" class="count"></span></summary><div id="outlinks"></div></details>
+  </aside>
+</div>
+
+<div class="modal" id="switcher" hidden>
+  <div class="box">
+    <input id="swInput" class="field" placeholder="Type a note name…" autocomplete="off">
+    <div id="swList" class="swlist"></div>
+    <div class="muted small hint">↑↓ to move · Enter to open · Esc to close</div>
+  </div>
+</div>
+<div class="modal" id="palette" hidden>
+  <div class="box">
+    <input id="palInput" class="field" placeholder="Type a command…" autocomplete="off">
+    <div id="palList" class="swlist"></div>
+  </div>
+</div>
+<div class="modal" id="dialog" hidden>
+  <div class="box dialog-box">
+    <div id="dlgMsg"></div>
+    <input id="dlgInput" class="field" autocomplete="off">
+    <div class="dlg-buttons"><button id="dlgCancel" class="small-btn">Cancel</button><button id="dlgOk" class="primary">OK</button></div>
+  </div>
+</div>
+<div class="modal" id="settings" hidden>
+  <div class="box settings-box">
+    <nav id="setNav" class="set-navs"></nav>
+    <div class="set-main"><button class="icon set-close" id="setClose" title="Close">✕</button><div id="setBody"></div></div>
+  </div>
+</div>
+<div class="viewer" id="viewer" hidden>
+  <div class="view-bar">
+    <span id="viewName" class="view-name"></span><span id="viewInfo" class="muted"></span><span id="viewCount" class="muted"></span>
+    <span class="grow"></span>
+    <button class="tool" id="viewPrev" title="Previous (←)">‹</button>
+    <button class="tool" id="viewNext" title="Next (→)">›</button>
+    <button class="tool" id="viewOut" title="Zoom out (−)">−</button>
+    <span id="viewZoom" class="view-zoom"></span>
+    <button class="tool" id="viewIn" title="Zoom in (+)">+</button>
+    <button class="tool" id="viewFit" title="Fit (0)">Fit</button>
+    <button class="tool" id="view100" title="Actual size (1)">100%</button>
+    <button class="tool" id="viewRot" title="Rotate (R)">⟳</button>
+    <button class="tool" id="viewReveal" title="Show in folder">Show in folder</button>
+    <button class="tool" id="viewOpen" title="Open with the default Windows app">Open with…</button>
+    <button class="tool" id="viewClose" title="Close (Esc)">✕</button>
+  </div>
+  <div class="view-stage" id="viewStage"><img id="viewImg" alt=""></div>
+</div>
+<div id="ctxMenu" class="ctx-menu" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="graph.js"></script>
+<script src="atlas.js"></script>
+<script src="graph-view.js"></script>
+<script src="vendor/editor.js"></script>
+<script src="settings.js"></script>
+<script src="viewer.js"></script>
+<script src="canvas.js"></script>
+<script src="kanban.js"></script>
+<script src="dataview.js"></script>
+<script src="dvview.js"></script>
+<script src="edit.js"></script>
+<script src="command.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
