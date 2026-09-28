@@ -13,9 +13,9 @@ let failed = 0;
 const ok = (name, cond, extra = '') => { if (!cond) failed++; console.log((cond ? 'PASS ' : 'FAIL ') + name, cond ? '' : extra); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function server(extra = []) {
+function server(extra = [], env = {}) {
   const cmd = process.env.MCP_CMD ? JSON.parse(process.env.MCP_CMD) : [process.execPath, path.join(root, 'mcp', 'lanternote-mcp.js')];
-  const p = spawn(cmd[0], [...cmd.slice(1), '--vault', V, ...extra], { env: { ...process.env, LANTERNOTE_USER_DATA: U, ...(process.env.MCP_ENV ? JSON.parse(process.env.MCP_ENV) : {}) }, stdio: ['pipe', 'pipe', 'pipe'] });
+  const p = spawn(cmd[0], [...cmd.slice(1), '--vault', V, ...extra], { env: { ...process.env, LANTERNOTE_USER_DATA: U, ...(process.env.MCP_ENV ? JSON.parse(process.env.MCP_ENV) : {}), ...env }, stdio: ['pipe', 'pipe', 'pipe'] });
   let buf = '', id = 0; const waits = new Map(), errs = [];
   p.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue; const m = JSON.parse(line); const w = waits.get(m.id); if (w) { waits.delete(m.id); w(m); } } });
   p.stderr.on('data', (d) => errs.push(String(d)));
@@ -91,6 +91,17 @@ function server(extra = []) {
   await pz.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
   ok('app settings: no writing, only the folders chosen', (await pz.rpc('tools/list', {})).result.tools.length === 8 && (await pz.call('vault_info')).notes === 3);
   pz.close();
+  // the .mcpb bundle's option overrides the app setting, both ways
+  const bOn = server([], { LANTERNOTE_ALLOW_WRITE: 'true' });
+  await bOn.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
+  ok('bundle option on: writing tools although the app setting is off', (await bOn.rpc('tools/list', {})).result.tools.length === 13);
+  bOn.close();
+  fs.rmSync(path.join(U, 'settings.json'));
+  const bOff = server([], { LANTERNOTE_ALLOW_WRITE: 'false' });
+  await bOff.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
+  ok('bundle option off (the default): read only without any app settings', (await bOff.rpc('tools/list', {})).result.tools.length === 8);
+  bOff.close();
+  fs.writeFileSync(path.join(U, 'settings.json'), '{}');
   fs.rmSync(path.join(U, 'settings.json'));
   // limited to one folder
   const o = server(['--only', 'Tasks']);

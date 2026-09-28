@@ -40,6 +40,12 @@ for (const f of fs.readdirSync(shots)) if (/^g\d+-.*\.png$/.test(f)) fs.copyFile
 run(require(path.join(src, 'node_modules', 'electron')), ['scripts/render-ads.js', shots, ads, path.join(guide, 'Lanternote-User-Guide.md'), path.join(guide, 'Lanternote-User-Guide.pdf')], { LANTERNOTE_SRC: src });
 // the README pictures in the repository (docs/images) — commit them with the release
 run(require(path.join(src, 'node_modules', 'electron')), ['scripts/readme-images.js', shots, ads]);
+// the moving demo at the top of the README (docs/images/demo.gif) — needs ffmpeg
+if (spawnSync('ffmpeg', ['-version']).status === 0) {
+  const frames = path.join(work, 'demo-frames');
+  run(process.execPath, ['scripts/drive.js', demo, 'scripts/demo-gif.js'], { DEMO_OUT: frames });
+  run(process.execPath, ['scripts/make-gif.js', frames]);
+} else console.log('ffmpeg not found — docs/images/demo.gif was NOT rebuilt');
 
 if (to) {
   // copy with a few retries: OneDrive may hold a file for a moment

@@ -1,0 +1,52 @@
+name: Bug report
+description: Something does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **do not attach your real notes** — a small made-up folder is enough.
+  - type: input
+    id: version
+    attributes:
+      label: Lanternote version
+      description: Help → About
+      placeholder: "1.17.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: Which download
+      options:
+        - Portable .exe
+        - .zip (win-unpacked)
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 23H2"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Steps to reproduce, what you expected, and what happened instead.
+      placeholder: |
+        1. Open a folder with …
+        2. Press …
+        3. See …
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: Folder size (for speed problems)
+      placeholder: "about 50,000 notes"
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or log
+      description: Screenshots help. The problem log is `lanternote.log`: Settings (Ctrl+,) → **Open folder** next to "Settings, caches and recovery copies".

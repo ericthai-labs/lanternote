@@ -5,6 +5,7 @@
 // indexer the app uses. Speaks MCP over stdio (one JSON-RPC message per line).
 //
 //   node mcp/lanternote-mcp.js [--vault <folder>] [--read-only] [--only "A, B/C"]
+//   (Claude Desktop extension) lanternote-x.y.z.mcpb, built by scripts/make-mcpb.js
 //   (packaged app) ELECTRON_RUN_AS_NODE=1 "Lanternote.exe" "<app>\resources\app.asar\mcp\lanternote-mcp.js" …
 //
 // Without --vault the folder last opened in the app is used; Settings → AI
@@ -26,7 +27,10 @@ const USER = process.env.LANTERNOTE_USER_DATA || path.join(process.env.APPDATA |
 const settings = (() => { try { return JSON.parse(fs.readFileSync(path.join(USER, 'settings.json'), 'utf8')); } catch { return {}; } })();
 const prefs = settings.prefs || {};
 const ROOT = path.resolve(opt('--vault') || process.env.LANTERNOTE_VAULT || settings.lastVault || '.');
-const WRITE = !args.includes('--read-only') && prefs.mcpWrite !== false;
+// LANTERNOTE_ALLOW_WRITE=true|false (set by the .mcpb bundle's "Let the AI edit notes"
+// option) decides when present; otherwise the app's setting does. --read-only always wins.
+const ENV_WRITE = process.env.LANTERNOTE_ALLOW_WRITE;
+const WRITE = !args.includes('--read-only') && (ENV_WRITE ? ENV_WRITE === 'true' : prefs.mcpWrite !== false);
 const ONLY = String(opt('--only') || prefs.mcpOnly || '').split(',').map((s) => s.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '')).filter(Boolean);
 const EXCLUDE = String(prefs.exclude || '').split(',').map((s) => s.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase()).filter(Boolean);
 const log = (...a) => process.stderr.write('[lanternote-mcp] ' + a.join(' ') + '\n'); // stdout is the protocol

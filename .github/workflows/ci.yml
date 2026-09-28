@@ -1,0 +1,81 @@
+name: Test and build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: AI connection (MCP)
+        run: node tests/mcp.js
+      - name: UI scenarios (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb libgbm1 libnss3 libasound2t64
+          xvfb-run -a -s "-screen 0 1600x1000x24" node tests/run-all.js
+      - name: UI scenarios
+        if: runner.os != 'Linux'
+        run: node tests/run-all.js
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            dist: dist:win
+          - os: macos-latest
+            dist: dist:mac
+          - os: ubuntu-latest
+            dist: dist:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ${{ matrix.dist }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lanternote-${{ runner.os }}
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.AppImage
+          if-no-files-found: error
+      # macOS and Linux builds join the release made from Windows (scripts/publish-public.js --release)
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v') && runner.os != 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(dist/*.zip dist/*.AppImage)
+          for i in 1 2 3 4 5 6 7 8 9 10; do gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 && break; sleep 60; done
+          gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber

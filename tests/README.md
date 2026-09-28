@@ -1,23 +1,37 @@
-# Kịch bản kiểm thử (chạy bằng scripts/drive.js)
+# Tests
 
-Mỗi kịch bản điều khiển app qua DevTools và in `PASS` / `FAIL` từng bước.
-Luôn chạy trên **vault tạm**, không chạy trên thư mục ghi chú thật (các kịch bản ghi, đổi tên, xoá file).
+UI scenarios drive the running app through the DevTools protocol (`scripts/drive.js`) and print `PASS` / `FAIL` for every step.
+Always run them on **throw-away folders**, never on real notes — they create, rename and delete files.
 
-| Kịch bản | Vault cần có | Lệnh |
+## Run everything
+
+```bash
+node tests/mcp.js        # AI connection (MCP), 35 checks, no window needed
+node tests/run-all.js    # every UI scenario below, on fresh folders in the temp directory
+```
+
+`node tests/run-all.js "<path to Lanternote.exe>"` tests a packaged build; `ONLY=editing.js,kanban.js node tests/run-all.js` runs a few.
+On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs both commands on Windows, macOS and Linux.
+
+## Scenarios
+
+| Scenario | Folder it needs | Command |
 |---|---|---|
-| `editing.js` (18 bước) | `Home.md` (link [[A]], [[Missing]], [md](sub/B.md), 2 task), `A.md`, `sub/B.md` (link [[A\|alias]], ![[A#A]]) | `TV=<vault> node scripts/drive.js <vault> tests/editing.js` |
-| `settings.js` (7 bước) | như trên + `Archive/Old.md` | `TV=<vault> node scripts/drive.js <vault> tests/settings.js` |
-| `guide-about.js` (6 bước) | có `Home.md` | `node scripts/drive.js <vault> tests/guide-about.js` |
-| `image-viewer.js` (10 bước) | `Home.md` nhúng `![[sunset.png\|400]]`, `![[logo.svg]]`; thư mục `pics/` có sunset.png, small.png, logo.svg | `node scripts/drive.js <vault> tests/image-viewer.js` |
-| `changelog.js` (4 bước) | có `Home.md` | `node scripts/drive.js <vault> tests/changelog.js` |
-| `canvas.js` (17 bước) | tạo bằng `node tests/make-canvas-vault.js <thư mục trống>` | `TV=<vault> node scripts/drive.js <vault> tests/canvas.js` |
-| `dataview.js` (15 bước) | tạo bằng `node tests/make-dv-vault.js <thư mục trống>` | `TV=<vault> node scripts/drive.js <vault> tests/dataview.js` |
-| `kanban.js` (25 bước) | tạo bằng `node tests/make-kanban-vault.js <thư mục trống>` | `TV=<vault> node scripts/drive.js <vault> tests/kanban.js` |
-| `mcp.js` (33 bước, không cần drive.js) | tự tạo vault tạm + thư mục cài đặt tạm | `node tests/mcp.js` · bản exe: `MCP_CMD='["<win-unpacked>/Lanternote.exe","<win-unpacked>/resources/app.asar/mcp/lanternote-mcp.js"]' MCP_ENV='{"ELECTRON_RUN_AS_NODE":"1"}' node tests/mcp.js` |
-| `tasks-calendar.js` (19 bước) | tạo bằng `node tests/make-task-vault.js <thư mục trống>` | `TV=<vault> node scripts/drive.js <vault> tests/tasks-calendar.js` |
-| `command-center.js` (42 bước) | tạo bằng `node tests/make-cc-vault.js <thư mục trống>` | `TV=<vault> node scripts/drive.js <vault> tests/command-center.js` |
-| `indexer-recovery.js` (4 bước) | vault của `make-dv-vault.js` | `LANTERNOTE_TEST=1 TV=<vault> node scripts/drive.js <vault> tests/indexer-recovery.js` |
-| `undo-redo.js` (5 bước) | có `Home.md` | `node scripts/drive.js <vault> tests/undo-redo.js` |
-| `map-weak-pc.js` | thư viện lớn (chỉ đọc, không ghi) | `WEAK=1 node scripts/drive.js <thư mục> tests/map-weak-pc.js` |
+| `editing.js` (18 steps) | `Home.md` (links `[[A]]`, `[[Missing]]`, `[md](sub/B.md)`, two tasks), `A.md`, `sub/B.md` (links `[[A\|alias]]`, `![[A#A]]`) | `TV=<folder> node scripts/drive.js <folder> tests/editing.js` |
+| `settings.js` (7 steps) | as above plus `Archive/Old.md` | `TV=<folder> node scripts/drive.js <folder> tests/settings.js` |
+| `guide-about.js` (6 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/guide-about.js` |
+| `image-viewer.js` (10 steps) | `Home.md` embedding `![[sunset.png\|400]]` and `![[logo.svg]]`; `pics/` with sunset.png, small.png, logo.svg | `node scripts/drive.js <folder> tests/image-viewer.js` |
+| `changelog.js` (4 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/changelog.js` |
+| `undo-redo.js` (5 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/undo-redo.js` |
+| `canvas.js` (17 steps) | made by `node tests/make-canvas-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/canvas.js` |
+| `dataview.js` (15 steps) | made by `node tests/make-dv-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/dataview.js` |
+| `kanban.js` (25 steps) | made by `node tests/make-kanban-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/kanban.js` |
+| `tasks-calendar.js` (19 steps) | made by `node tests/make-task-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/tasks-calendar.js` |
+| `command-center.js` (42 steps) | made by `node tests/make-cc-vault.js <empty folder>` — the folder must be named `lanternote-cc-vault` | `TV=<folder> node scripts/drive.js <folder> tests/command-center.js` |
+| `indexer-recovery.js` (4 steps) | the folder from `make-dv-vault.js` | `LANTERNOTE_TEST=1 TV=<folder> node scripts/drive.js <folder> tests/indexer-recovery.js` |
+| `mcp.js` (35 steps, no `drive.js`) | makes its own temporary folder and settings | `node tests/mcp.js` · packaged: `MCP_CMD='["<win-unpacked>/Lanternote.exe","<win-unpacked>/resources/app.asar/mcp/lanternote-mcp.js"]' MCP_ENV='{"ELECTRON_RUN_AS_NODE":"1"}' node tests/mcp.js` |
+| `map-weak-pc.js` | a large folder (read only) | `WEAK=1 node scripts/drive.js <folder> tests/map-weak-pc.js` |
 
-Thêm `APP_EXE="dist-x.y.z/win-unpacked/Lanternote.exe"` để thử bản đã đóng gói.
+Options for `scripts/drive.js`: `APP_EXE="dist/win-unpacked/Lanternote.exe"` tests a packaged build; `WEAK=1` imitates a low-end PC (no GPU, 4× slower CPU); `FRESH_PROFILE=1` starts with empty settings (the app then opens no folder); `THEME=dark` for screenshots.
+
+A large made-up folder for speed checks: `node scripts/make-demo-vault.js <empty folder>` (about 139,000 notes), then `node scripts/bench-index.js <folder> <words to search>`.

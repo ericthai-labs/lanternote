@@ -19,7 +19,8 @@ Read, edit, search, query and map 200,000 notes on any Windows PC — no account
 <br>
 
 <p align="center">
-  <img src="docs/images/main-window.jpg" alt="The Lanternote main window" width="90%">
+  <img src="docs/images/demo.gif" alt="Lanternote in 20 seconds: quick open, full-text search over 139,000 notes, the Command Center, the galaxy and the link graph" width="90%">
+  <br><sub>20 seconds on a made-up folder of 139,434 notes: quick open · full-text search · Command Center · galaxy · link graph</sub>
 </p>
 
 ## Why Lanternote
@@ -108,7 +109,7 @@ Lay out notes, text and links on an infinite board. Canvases use the open [JSON 
 <td valign="top">
 
 ### Connect an AI assistant
-Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run queries, list tasks and — only if you allow it — write. Limit it to chosen folders; every change is logged and reversible.
+Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run queries, list tasks and — only if you allow it — write. Limit it to chosen folders; every change is logged and reversible. For Claude Desktop, just double-click `lanternote-<version>.mcpb` from the release.
 
 <img src="docs/images/ai-connection.jpg" alt="AI connection settings">
 </td>
@@ -152,6 +153,8 @@ Measured on a real-world library of **190,522 notes, 2.49 million links (728 MB)
 1. Download `Lanternote-<version>-portable.exe` from the [latest release](https://github.com/ericthai-labs/lanternote/releases/latest).
 2. Run it — no installation and no admin rights. For a faster start, use the `.zip` instead and run `Lanternote.exe` inside it.
 3. Click **Open a folder** and choose your notes. Next time Lanternote reopens the same folder and note.
+
+**Only want your AI assistant to read your notes?** Download `lanternote-<version>.mcpb` from the same release and double-click it: Claude Desktop installs the extension and asks for your notes folder. It is read-only unless you turn on *Let the AI edit notes*, and it works on Windows, macOS and Linux.
 
 > [!NOTE]
 > The app is not code-signed yet, so Windows SmartScreen may warn you: choose **More info → Run anyway**.
@@ -210,11 +213,11 @@ npm run dist:win   # portable .exe and .zip in dist/
 | `src/graph.js` | Graph "Live" engine (cosmos.gl) |
 | `src/app.js`, `src/edit.js`, `editor/` | Reader and editor (CodeMirror 6) |
 | `src/command.js`, `src/dataview.js`, `src/dvview.js`, `src/kanban.js`, `src/canvas.js` | Command Center, queries, Kanban, Canvas |
-| `mcp/lanternote-mcp.js` | MCP server for AI assistants (no extra dependencies) |
+| `mcp/lanternote-mcp.js` | MCP server for AI assistants (no extra dependencies); `scripts/make-mcpb.js` packs it as a Claude Desktop extension |
 | `tests/`, `scripts/drive.js` | Automated tests that drive the app through DevTools |
 
 ```bash
-node tests/mcp.js                                    # AI connection, 33 checks
+node tests/mcp.js                                    # AI connection, 35 checks
 node scripts/drive.js <test-folder> tests/editing.js # UI scenarios — see tests/README.md
 node scripts/bench-index.js <folder> <words>         # index and search timings
 npm run media -- <work-folder>                        # rebuild guide, adverts and README pictures

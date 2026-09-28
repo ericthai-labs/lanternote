@@ -9,6 +9,9 @@ All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PA
 - Exe: `Lanternote-x.y.z-portable.exe`; AI connection script: `mcp/lanternote-mcp.js` — copy the new command from Settings → AI connection.
 - Command Center blocks are now written ` ```lantern `; existing ` ```lumen ` blocks keep working.
 
+### Added
+- **Claude Desktop extension**: `lanternote-1.17.0.mcpb` — double-click to install the AI connection without the app, pick the notes folder; read-only unless *Let the AI edit notes* is turned on.
+
 ## 1.16.1
 
 ### Changed

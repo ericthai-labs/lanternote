@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lanternote — fast, private notes for very large Markdown folders</title>
+<meta name="description" content="Lanternote is a free desktop app for Windows that reads, edits, searches, queries and maps 200,000 Markdown notes — offline, no account, no graphics card needed.">
+<meta name="keywords" content="markdown notes app, large vault, note-taking, knowledge base, wiki links, backlinks, graph view, kanban, canvas, MCP, offline, Windows">
+<link rel="canonical" href="https://ericthai-labs.github.io/lanternote/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lanternote — your notes, as a galaxy">
+<meta property="og:description" content="Fast, private desktop app for very large folders of Markdown notes. 200,000 notes, no cloud, no graphics card needed.">
+<meta property="og:url" content="https://ericthai-labs.github.io/lanternote/">
+<meta property="og:image" content="https://ericthai-labs.github.io/lanternote/images/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ericthai-labs.github.io/lanternote/images/social-preview.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Lanternote","operatingSystem":"Windows 10, Windows 11","applicationCategory":"ProductivityApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Fast, private desktop app for very large folders of Markdown notes.","url":"https://ericthai-labs.github.io/lanternote/","downloadUrl":"https://github.com/ericthai-labs/lanternote/releases/latest","license":"https://polyformproject.org/licenses/noncommercial/1.0.0"}
+</script>
+<style>
+  :root { --bg: #0b0f1a; --bg2: #111728; --card: #151c30; --line: #243050; --text: #e7eaf3; --muted: #9aa4bf; --amber: #f0b541; --amber2: #c27a12; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  a { color: var(--amber); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  img { max-width: 100%; display: block; border-radius: 10px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  nav { position: sticky; top: 0; z-index: 5; background: rgba(11,15,26,.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 22px; height: 56px; }
+  .brand { font-weight: 700; letter-spacing: .28em; color: var(--amber); font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .brand::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px var(--amber); }
+  nav .links { margin-left: auto; display: flex; gap: 20px; font-size: 15px; }
+  nav .links a { color: var(--muted); }
+  header { padding: 72px 0 36px; text-align: center; background: radial-gradient(ellipse at 50% 0%, #1c2750 0%, var(--bg) 60%); }
+  h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.1; margin: 0 0 18px; }
+  h1 em { font-style: normal; color: var(--amber); }
+  .lead { font-size: clamp(18px, 2.2vw, 21px); color: var(--muted); max-width: 720px; margin: 0 auto 30px; }
+  .buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 13px 26px; border-radius: 10px; font-weight: 600; }
+  .btn.primary { background: var(--amber); color: #1b1305; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+  .btn:hover { text-decoration: none; filter: brightness(1.08); }
+  .fine { color: var(--muted); font-size: 14px; margin-top: 14px; }
+  .demo { margin: 40px auto 0; max-width: 1000px; box-shadow: 0 30px 80px rgba(0,0,0,.55); border: 1px solid var(--line); border-radius: 12px; }
+  section { padding: 70px 0; }
+  section.alt { background: var(--bg2); }
+  h2 { font-size: clamp(28px, 3.6vw, 38px); margin: 0 0 12px; text-align: center; }
+  .sub { text-align: center; color: var(--muted); max-width: 700px; margin: 0 auto 40px; }
+  .points { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+  .point { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .point b { display: block; color: var(--amber); margin-bottom: 6px; font-size: 18px; }
+  .point span { color: var(--muted); font-size: 15px; }
+  .feature { display: grid; grid-template-columns: 1fr 1.35fr; gap: 40px; align-items: center; margin-bottom: 64px; }
+  .feature:nth-child(even) { grid-template-columns: 1.35fr 1fr; }
+  .feature:nth-child(even) .text { order: 2; }
+  .feature h3 { font-size: 26px; margin: 0 0 10px; }
+  .feature p { color: var(--muted); margin: 0; }
+  .feature img { border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+  table { width: 100%; max-width: 760px; margin: 0 auto; border-collapse: collapse; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  td:last-child { text-align: right; color: var(--amber); font-weight: 600; white-space: nowrap; }
+  code { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 14px; }
+  .license { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; max-width: 900px; margin: 0 auto; }
+  footer { padding: 36px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; text-align: center; }
+  @media (max-width: 800px) {
+    nav .links a.hide-sm { display: none; }
+    .feature, .feature:nth-child(even) { grid-template-columns: 1fr; gap: 18px; }
+    .feature:nth-child(even) .text { order: 0; }
+  }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <span class="brand">LANTERNOTE</span>
+  <div class="links">
+    <a href="#features" class="hide-sm">Features</a>
+    <a href="#performance" class="hide-sm">Performance</a>
+    <a href="#ai">AI</a>
+    <a href="https://github.com/ericthai-labs/lanternote">GitHub</a>
+  </div>
+</div></nav>
+
+<header><div class="wrap">
+  <h1>Your notes, as a <em>galaxy</em>.</h1>
+  <p class="lead">A fast, private desktop app for very large folders of Markdown notes. Read, edit, search, query and map 200,000 notes on any Windows PC — no account, no cloud, no graphics card needed.</p>
+  <div class="buttons">
+    <a class="btn primary" href="https://github.com/ericthai-labs/lanternote/releases/latest">Download for Windows</a>
+    <a class="btn ghost" href="https://github.com/ericthai-labs/lanternote">View on GitHub</a>
+  </div>
+  <p class="fine">Free for personal use · Portable, no installation · Works offline</p>
+  <img class="demo" src="images/demo.gif" alt="Lanternote in 20 seconds: quick open, full-text search over 139,000 notes, the Command Center, the galaxy and the link graph" width="1000">
+</div></header>
+
+<section><div class="wrap">
+  <h2>Built for folders that other apps choke on</h2>
+  <p class="sub">Tested on a real library of 190,522 notes and 2.49 million links.</p>
+  <div class="points">
+    <div class="point"><b>Fast at any size</b><span>Reopens in 1–2 seconds, searches every note in milliseconds.</span></div>
+    <div class="point"><b>Any PC</b><span>Graph and galaxy drawn without a graphics card. One portable .exe, no admin rights.</span></div>
+    <div class="point"><b>Your files</b><span>Plain .md files in a folder you choose. No account, no telemetry, no cloud.</span></div>
+    <div class="point"><b>AI-ready</b><span>Built-in MCP server for Claude and other assistants — read-only unless you allow writing.</span></div>
+  </div>
+</div></section>
+
+<section class="alt" id="features"><div class="wrap">
+  <h2>Everything you need, nothing you don't</h2>
+  <p class="sub">All stored as ordinary Markdown, readable in any text editor.</p>
+
+  <div class="feature"><div class="text"><h3>Command Center</h3><p>One page with what matters today — projects, due dates, open tasks, a calendar and recent notes. It is built from an ordinary note you can edit.</p></div><img src="images/command-center.jpg" alt="Command Center" loading="lazy"></div>
+  <div class="feature"><div class="text"><h3>Your notes as a galaxy</h3><p>Every star is a note, every arm a folder, and notes you edited this week shine. Zoom in to read names, click a star to open it.</p></div><img src="images/galaxy.jpg" alt="Galaxy of notes" loading="lazy"></div>
+  <div class="feature"><div class="text"><h3>Link graph on any PC</h3><p>The Map engine lays out hundreds of thousands of notes once, in the background, and draws them like a digital map. A GPU engine is there when you have one.</p></div><img src="images/graph.jpg" alt="Link graph" loading="lazy"></div>
+  <div class="feature"><div class="text"><h3>Live queries, tasks and calendars</h3><p>Tables, lists, task lists and month calendars from <code>dataview</code> blocks — refreshed as notes change. Tick a task in the results and the note is updated on the spot.</p></div><img src="images/queries.jpg" alt="Live queries" loading="lazy"></div>
+  <div class="feature"><div class="text"><h3>Kanban boards and canvases</h3><p>Drag cards between lanes; boards are plain Markdown. Lay out ideas on an infinite canvas in the open JSON Canvas format.</p></div><img src="images/kanban.jpg" alt="Kanban board" loading="lazy"></div>
+  <div class="feature"><div class="text"><h3>Editing that protects your work</h3><p>Auto-save, per-note undo, link completion, pasted images, renames that fix links, and version history. If a file changes on disk while you edit, you choose which version to keep.</p></div><img src="images/editing.jpg" alt="Editor" loading="lazy"></div>
+</div></section>
+
+<section id="performance"><div class="wrap">
+  <h2>Measured, not promised</h2>
+  <p class="sub">A real-world library of 190,522 notes, 2.49 million links, 728 MB.</p>
+  <table>
+    <tr><td>First open (no cache)</td><td>≈ 17–19 s</td></tr>
+    <tr><td>Reopen</td><td>≈ 1–2 s</td></tr>
+    <tr><td>Full-text search</td><td>20–130 ms</td></tr>
+    <tr><td>Quick open by name</td><td>≈ 25 ms</td></tr>
+    <tr><td>Live query over the whole library</td><td>≈ 0.1 s</td></tr>
+    <tr><td>Galaxy — one frame</td><td>≈ 1 ms</td></tr>
+  </table>
+</div></section>
+
+<section class="alt" id="ai"><div class="wrap">
+  <h2>Works with your AI assistant</h2>
+  <p class="sub">Lanternote includes an <a href="https://modelcontextprotocol.io">MCP</a> server. Claude Code, Claude Desktop and other MCP clients can search, read, run queries and list tasks — and, only if you allow it, create notes, edit passages and tick tasks. Every AI change keeps the previous text and is logged.</p>
+  <div class="feature" style="margin-bottom:0"><div class="text"><h3>Two clicks to connect</h3><p><b>Claude Desktop:</b> double-click <code>lanternote.mcpb</code> from the <a href="https://github.com/ericthai-labs/lanternote/releases/latest">release</a> and pick your notes folder — read-only until you allow editing. <b>Claude Code and others:</b> Settings → AI connection → <b>Copy command</b>. Limit the assistant to chosen folders.</p></div><img src="images/ai-connection.jpg" alt="AI connection settings" loading="lazy"></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Free for personal use</h2>
+  <p class="sub">Source-available under the <a href="https://github.com/ericthai-labs/lanternote/blob/main/LICENSE.txt">PolyForm Noncommercial License 1.0.0</a>.</p>
+  <div class="license">
+    <div class="point"><b>✓ Free</b><span>Personal use, study and hobby projects, and noncommercial organisations — charities, schools, public bodies.</span></div>
+    <div class="point"><b>✓ Open to read and improve</b><span>Read the code, report issues, send pull requests, share noncommercial changes.</span></div>
+    <div class="point"><b>Commercial use</b><span>Including internal use at a company, needs a separate licence — <a href="https://github.com/ericthai-labs/lanternote/issues">open an issue</a> to ask.</span></div>
+  </div>
+  <div class="buttons" style="margin-top:40px">
+    <a class="btn primary" href="https://github.com/ericthai-labs/lanternote/releases/latest">Download for Windows</a>
+    <a class="btn ghost" href="https://github.com/ericthai-labs/lanternote/blob/main/docs/guide/User-Guide.md">Read the user guide</a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  © 2026 Eric Thai - Thai Ba Hoa · Pictures are taken on a made-up folder of notes · <a href="https://github.com/ericthai-labs/lanternote">GitHub</a>
+</div></footer>
+</body>
+</html>
