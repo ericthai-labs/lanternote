@@ -2,6 +2,14 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.17.1
+
+### Added
+- **macOS and Linux builds** (`.zip` for macOS, `.AppImage` for Linux), built and tested on each system by CI. They are not code-signed yet.
+
+### Fixed
+- Linux: notes changed by another app or a sync tool were not reloaded — every folder is now watched on its own.
+
 ## 1.17.0
 
 ### Changed

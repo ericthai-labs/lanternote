@@ -18,9 +18,6 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    # macOS and Linux are experimental until two known problems are fixed: file watching on
-    # Linux (recursive fs.watch in Electron's Node 20) and opening a [[link]] inside a canvas card.
-    continue-on-error: ${{ matrix.os != 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,7 +47,10 @@ jobs:
         include:
           - os: windows-latest
             dist: dist:win
-          # macOS (dist:mac) and Linux (dist:linux) join once their tests pass — see the test job
+          - os: macos-latest
+            dist: dist:mac
+          - os: ubuntu-latest
+            dist: dist:linux
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

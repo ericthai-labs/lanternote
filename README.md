@@ -5,10 +5,10 @@
 # Lanternote
 
 **A fast, private desktop app for very large folders of Markdown notes.**<br>
-Read, edit, search, query and map 200,000 notes on any Windows PC — no account, no cloud, no graphics card needed.
+Read, edit, search, query and map 200,000 notes on Windows, macOS or Linux — no account, no cloud, no graphics card needed.
 
 [![Release](https://img.shields.io/github/v/release/ericthai-labs/lanternote?color=f0b541&label=release)](https://github.com/ericthai-labs/lanternote/releases)
-[![Platform](https://img.shields.io/badge/platform-Windows-0f1422)](#download)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0f1422)](#download)
 [![Offline](https://img.shields.io/badge/works-offline-2e7d5b)](#privacy)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-c27a12)](LICENSE.txt)
 
@@ -150,15 +150,26 @@ Measured on a real-world library of **190,522 notes, 2.49 million links (728 MB)
 
 ## Download
 
-1. Download `Lanternote-<version>-portable.exe` from the [latest release](https://github.com/ericthai-labs/lanternote/releases/latest).
-2. Run it — no installation and no admin rights. For a faster start, use the `.zip` instead and run `Lanternote.exe` inside it.
-3. Click **Open a folder** and choose your notes. Next time Lanternote reopens the same folder and note.
+Get the file for your system from the [latest release](https://github.com/ericthai-labs/lanternote/releases/latest):
+
+| System | File | How to run |
+|---|---|---|
+| **Windows** 10/11 | `Lanternote-<version>-portable.exe` | Run it — no installation, no admin rights. For a faster start use `Lanternote-<version>-win.zip` and run `Lanternote.exe` inside. |
+| **macOS** (Apple silicon) | `Lanternote-<version>-arm64-mac.zip` | Unzip and move `Lanternote.app` to Applications. |
+| **Linux** (x64) | `Lanternote-<version>.AppImage` | `chmod +x Lanternote-*.AppImage`, then run it. |
+
+Then click **Open a folder** and choose your notes. Next time Lanternote reopens the same folder and note.
 
 **Only want your AI assistant to read your notes?** Download `lanternote-<version>.mcpb` from the same release and double-click it: Claude Desktop installs the extension and asks for your notes folder. It is read-only unless you turn on *Let the AI edit notes*, and it works on Windows, macOS and Linux.
 
 > [!NOTE]
-> The app is not code-signed yet, so Windows SmartScreen may warn you: choose **More info → Run anyway**.
-> Settings, the index cache and recovery copies are kept per PC in `%APPDATA%\Lanternote`.
+> The app is not code-signed yet, so your system may warn you the first time:
+> - **Windows** SmartScreen: **More info → Run anyway**.
+> - **macOS**: right-click `Lanternote.app` → **Open** → **Open**. If macOS says the app "is damaged", run `xattr -cr /Applications/Lanternote.app` once.
+> - **Linux**: on Ubuntu 24.04 and later, if the AppImage does not start, run it with `--no-sandbox`.
+>
+> The macOS and Linux builds are new: every feature is tested on both systems by CI, but please [report](https://github.com/ericthai-labs/lanternote/issues) anything that looks wrong.
+> Settings, the index cache and recovery copies are kept on each computer (`%APPDATA%\Lanternote` on Windows).
 
 Press **F1** in the app for the built-in guide, or read the illustrated [user guide](docs/guide/User-Guide.md).
 
