@@ -19,11 +19,15 @@ if (process.env.FRESH_PROFILE) fs.rmSync(path.join(profile, 'settings.json'), { 
 else fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ lastVault: path.resolve(vault), theme: process.env.THEME || 'light' }));
 
 const electron = require('electron'); // path to the binary when required from node
-const port = 9333;
+// port 0: Chromium picks a free port and writes it to DevToolsActivePort in the profile,
+// so a previous app still shutting down can neither block us nor be driven by mistake
+const portFile = path.join(profile, 'DevToolsActivePort');
+fs.rmSync(portFile, { force: true });
+let port = null;
 // APP_EXE=dist/win-unpacked/"Lanternote.exe" tests the packaged build instead of the sources
 const exe = process.env.APP_EXE ? path.resolve(process.env.APP_EXE) : electron;
 // WEAK=1 imitates a low-end PC: no GPU (WebGL falls back to software) and a 4x slower CPU
-const args = [...(process.env.APP_EXE ? [] : ['.']), `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', ...(process.env.WEAK ? ['--disable-gpu'] : [])];
+const args = [...(process.env.APP_EXE ? [] : ['.']), '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', ...(process.env.WEAK ? ['--disable-gpu'] : [])];
 const child = spawn(exe, args, { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'pipe', 'pipe'] });
 const logs = [];
 child.stdout.on('data', (d) => logs.push(String(d)));
@@ -55,6 +59,7 @@ async function until(expr, ms = 60000) {
   let target;
   for (let i = 0; i < 80 && !target; i++) {
     await sleep(250);
+    if (!port) { try { port = +fs.readFileSync(portFile, 'utf8').split('\n')[0] || null; } catch { /* not written yet */ } continue; }
     try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page'); } catch { /* starting */ }
   }
   if (!target) throw new Error('no window — the app printed:\n' + (logs.join('').slice(-3000) || '(nothing)'));
