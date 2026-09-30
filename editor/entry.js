@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — Markdown editor (bundled by scripts/vendor.js into
 // src/vendor/editor.js, exposed as window.LanternoteEditor).
 // CodeMirror 6, with:
@@ -6,7 +6,8 @@
 //   • [[ completion of note names and #headings, # completion of tags;
 //   • history, search (Ctrl+F), Tab indent, soft wrapping;
 //   • Ctrl+B / Ctrl+I / Ctrl+K formatting, Ctrl+Enter toggles a task;
-//   • pasted images handed to the app to store as attachments.
+//   • pasted images handed to the app to store as attachments;
+//   • live preview (editor/live-preview.js), switched on and off at run time.
 import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, keymap, drawSelection, highlightActiveLine, placeholder, dropCursor } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab, undo, redo, undoDepth, redoDepth } from '@codemirror/commands';
@@ -15,6 +16,7 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { tags as t } from '@lezer/highlight';
+import { livePreview } from './live-preview.js';
 
 const style = HighlightStyle.define([
   { tag: t.heading1, fontSize: '1.6em', fontWeight: '700' },
@@ -29,7 +31,6 @@ const style = HighlightStyle.define([
   { tag: t.monospace, fontFamily: 'ui-monospace, Consolas, monospace', background: 'var(--code-bg)' },
   { tag: t.quote, color: 'var(--muted)' },
   { tag: [t.processingInstruction, t.meta, t.contentSeparator], color: 'var(--faint)' },
-  { tag: t.list, color: 'var(--accent)' },
 ]);
 
 const theme = EditorView.theme({
@@ -84,6 +85,9 @@ function link(view) {
 
 export function create(parent, opts) {
   const dark = new Compartment();
+  const lp = new Compartment();
+  const lpExt = livePreview({ imageUrl: opts.imageUrl, onOpenLink: opts.onOpenLink });
+  let isLive = opts.livePreview !== false;
   const completions = [];
   // [[note, [[note#heading, ![[embed
   if (opts.linkOptions) completions.push((ctx) => {
@@ -138,6 +142,7 @@ export function create(parent, opts) {
         ]),
         theme,
         dark.of(EditorView.theme({}, { dark: isDark })),
+        lp.of(isLive ? lpExt : []),
         EditorView.updateListener.of((u) => { if (u.docChanged && opts.onChange) opts.onChange(); if (u.docChanged && opts.onHistory) opts.onHistory(); }),
         EditorView.domEventHandlers({
           paste(e) {
@@ -190,6 +195,13 @@ export function create(parent, opts) {
       isDark = d;
       view.dispatch({ effects: dark.reconfigure(EditorView.theme({}, { dark: d })) });
       for (const [k, st] of states) states.set(k, st.update({ effects: dark.reconfigure(EditorView.theme({}, { dark: d })) }).state);
+    },
+    get livePreview() { return isLive; },
+    setLivePreview(on) {
+      isLive = !!on;
+      const eff = lp.reconfigure(isLive ? lpExt : []);
+      view.dispatch({ effects: eff });
+      for (const [k, st] of states) states.set(k, st.update({ effects: eff }).state);
     },
     scrollToLine(n) {
       const line = view.state.doc.line(Math.max(1, Math.min(n, view.state.doc.lines)));

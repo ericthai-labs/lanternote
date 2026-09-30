@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — graph view: toolbar + choice of engine.
 //   Map (atlas.js, default) — fixed layout computed once and cached, drawn
 //     with Canvas 2D by level of detail; runs on any PC, idle costs nothing.

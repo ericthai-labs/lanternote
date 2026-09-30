@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — compact full-text index (used by indexer.js).
 // Replaces "keep every note's text in memory" (~500 MB for 190k notes) with
 // an inverted index of words that is saved to disk and loaded on reopen, so

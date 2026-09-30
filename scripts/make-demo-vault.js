@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Builds a large vault of made-up notes for screenshots, the user guide and
 // adverts — so no real record ever appears in a picture.
 //   node scripts/make-demo-vault.js <empty folder> [notes, default 150000]

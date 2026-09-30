@@ -1,4 +1,9 @@
-name: Test and build
+name: Test, build and release
+
+# Every push and pull request: tests on Windows, macOS and Linux, then builds for all three.
+# A version tag (v1.2.3) also makes the GitHub release by itself once all of that passed:
+# Windows .exe + .zip, macOS .zip, Linux .AppImage, the Claude Desktop extension (.mcpb),
+# notes from CHANGELOG.md — and publishes the new version to the MCP Registry.
 
 on:
   push:
@@ -8,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: 'Attach the macOS and Linux builds to this existing release tag (e.g. v1.17.1); empty = build only'
+        description: 'Make (or refresh) the release for this existing tag, e.g. v1.18.0; empty = test and build only'
         required: false
         default: ''
 
@@ -32,6 +37,8 @@ jobs:
       - run: npm ci
       - name: AI connection (MCP)
         run: node tests/mcp.js
+      - name: Index cache
+        run: node tests/index-cache.js
       - name: UI scenarios (Linux, virtual display)
         if: runner.os == 'Linux'
         run: |
@@ -76,15 +83,51 @@ jobs:
             dist/*.zip
             dist/*.AppImage
           if-no-files-found: error
-      # macOS and Linux builds join the release made from Windows (scripts/publish-public.js --release)
-      - name: Attach to the release
-        if: (startsWith(github.ref, 'refs/tags/v') || inputs.release != '') && runner.os != 'Windows'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.release || github.ref_name }}
+
+  release:
+    name: Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # MCP Registry login (GitHub OIDC)
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.release || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The tag matches package.json and CHANGELOG.md
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "$TAG" = "v$v" ] || { echo "::error::tag $TAG but package.json says $v"; exit 1; }
+          node scripts/release-notes.js "$v" > notes.md
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: lanternote-*
+          merge-multiple: true
+      - name: Claude Desktop extension (.mcpb) and server.json
+        run: node scripts/make-mcpb.js dist
+      - name: Make or update the release
         run: |
           shopt -s nullglob
-          files=(dist/*.zip dist/*.AppImage)
-          for i in 1 2 3 4 5 6 7 8 9 10; do gh release view "$TAG" >/dev/null 2>&1 && break; sleep 60; done
-          gh release upload "$TAG" "${files[@]}" --clobber
+          files=(dist/*.exe dist/*.zip dist/*.AppImage dist/*.mcpb)
+          ls -l "${files[@]}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" "${files[@]}" --verify-tag --title "Lanternote ${TAG#v}" --notes-file notes.md
+          fi
+      # server.json was just written for the bundle uploaded above, so the registry check matches
+      - name: Publish to the MCP Registry
+        run: |
+          curl -sfL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Test driver: starts the app with a throw-away profile, opens a folder and
 // runs JS in the window through the DevTools protocol.
 //   node scripts/drive.js "<vault folder>" <script.js> [out-dir]
@@ -14,9 +14,10 @@ const [vault, scriptFile, outDir = path.join(os.tmpdir(), 'lanternote-drive')] =
 const profile = path.join(os.tmpdir(), 'lanternote-drive-profile');
 fs.mkdirSync(profile, { recursive: true });
 fs.mkdirSync(outDir, { recursive: true });
-// FRESH_PROFILE=1 starts with an empty profile (to test first-run behaviour)
+// FRESH_PROFILE=1 starts with an empty profile (to test first-run behaviour);
+// KEEP_PROFILE=1 keeps the settings of the previous run (to test an upgrade)
 if (process.env.FRESH_PROFILE) fs.rmSync(path.join(profile, 'settings.json'), { force: true });
-else fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ lastVault: path.resolve(vault), theme: process.env.THEME || 'light' }));
+else if (!process.env.KEEP_PROFILE) fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ lastVault: path.resolve(vault), theme: process.env.THEME || 'light' }));
 
 const electron = require('electron'); // path to the binary when required from node
 // port 0: Chromium picks a free port and writes it to DevToolsActivePort in the profile,

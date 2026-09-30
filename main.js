@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — main process.
 // Owns the file system: picks the vault folder, reads it, watches it, and
 // serves attachments to the window through the vault:// protocol.
@@ -402,7 +402,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // ---------- authorship ----------
-const COPYRIGHT = 'Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0.';
+const COPYRIGHT = 'Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0.';
 const licenceFile = (name) => path.join(app.isPackaged ? process.resourcesPath : __dirname, name);
 function openLicence(name) { shell.openPath(licenceFile(name)); }
 async function about() {
@@ -411,7 +411,7 @@ async function about() {
     detail: `${COPYRIGHT}
 Author: Eric Thai - Thai Ba Hoa
 
-Do not copy or redistribute without the author's written permission. See the licence.`,
+Open source under the Apache License 2.0. See the licence.`,
     buttons: ['OK', 'Licence', 'Third-party licences'], defaultId: 0, cancelId: 0,
   });
   if (r.response === 1) openLicence('LICENSE.txt');
@@ -448,7 +448,7 @@ function buildMenu() {
       { type: 'separator' },
       { label: 'Print / Save as PDF…', click: send('print') },
       { type: 'separator' },
-      isMac ? { role: 'close' } : { role: 'quit' },
+      isMac ? { role: 'close', accelerator: 'Cmd+Shift+W' } : { role: 'quit' },
     ] },
     { label: 'Go', submenu: [
       { label: 'Command Center', accelerator: 'CmdOrCtrl+Shift+H', click: send('command-center') },
@@ -458,6 +458,13 @@ function buildMenu() {
       { label: 'Graph around this note', accelerator: 'CmdOrCtrl+Shift+G', click: send('graph-local') },
       { label: 'Back', accelerator: 'Alt+Left', click: send('back') },
       { label: 'Forward', accelerator: 'Alt+Right', click: send('forward') },
+      { type: 'separator' },
+      { label: 'New tab', accelerator: 'CmdOrCtrl+T', click: send('new-tab') },
+      { label: 'Close tab', accelerator: 'CmdOrCtrl+W', click: send('close-tab') },
+      { label: 'Next tab', accelerator: 'CmdOrCtrl+Tab', click: send('next-tab') },
+      { label: 'Previous tab', accelerator: 'CmdOrCtrl+Shift+Tab', click: send('prev-tab') },
+      { label: 'Open this note in the right pane', accelerator: 'CmdOrCtrl+Alt+Right', click: send('split-open') },
+      { label: 'Close the right pane', click: send('split-close') },
     ] },
     { label: 'View', submenu: [
       { label: 'Toggle file panel', accelerator: 'CmdOrCtrl+\\', click: send('toggle-left') },

@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — settings (Ctrl+, or the ⚙ button).
 // One schema drives the settings page, the defaults and where each value is
 // applied. Values live in userData/settings.json under "prefs"; the main
@@ -22,6 +22,7 @@ const Prefs = (() => {
       { key: 'autosaveDelay', label: 'Save after typing stops', type: 'number', def: 0.8, min: 0.3, max: 10, step: 0.1, unit: 's' },
       { key: 'spellcheck', label: 'Spell check', type: 'toggle', def: false },
       { key: 'activeLine', label: 'Highlight the line being edited', type: 'toggle', def: true },
+      { key: 'livePreview', label: 'Live preview', type: 'toggle', def: true, help: 'While editing, Markdown marks (**, #, [[ ]]…) are hidden except on the line with the cursor; pictures, checkboxes and links show as in reading view. Click a link to open it, Ctrl+click for a new tab, Alt+click for the other pane.' },
     ]],
     ['Files & links', [
       { key: 'newNoteLocation', label: 'New notes go to', type: 'select', def: 'current', options: [['current', 'The folder of the open note'], ['root', 'The vault root'], ['folder', 'The folder below']] },
@@ -94,7 +95,7 @@ const Prefs = (() => {
     if (acc && acc !== '#c27a12' && acc !== '#7b5bd6') { r.setProperty('--accent', acc); r.setProperty('--link', acc); } else { r.removeProperty('--accent'); r.removeProperty('--link'); }
     document.body.classList.toggle('no-active-line', !get('activeLine'));
     if (!changed || changed === 'theme') applyTheme();
-    if (changed === 'spellcheck' && typeof Ed !== 'undefined') Ed.settingsChanged();
+    if ((changed === 'spellcheck' || changed === 'livePreview') && typeof Ed !== 'undefined') Ed.settingsChanged();
     if ((changed === 'dvDateFormat' || changed === 'dvDateTimeFormat') && typeof DvView !== 'undefined') DvView.refresh();
     if (changed === 'showImages' && typeof renderTree === 'function') { T = null; renderTree(); }
     if ((changed === 'ccNote' || changed === 'ccBackground') && typeof CC !== 'undefined') CC.settingsChanged(changed);
@@ -132,7 +133,7 @@ const Prefs = (() => {
       g('setBody').innerHTML = `<h3>Lanternote ${esc(info.version)}</h3>
         <p><b>${esc(info.copyright)}</b><br>Author: ${esc(info.author)}</p>
         <p class="muted">Reads and edits a folder of Markdown notes. Nothing leaves this PC.
-        Copying or redistributing requires the author's written permission.</p>
+        Open source under the Apache License 2.0.</p>
         <div class="set-row"><div class="set-label">Licence</div><div class="set-input"><button class="small-btn" data-lic="own">Licence</button><button class="small-btn" data-lic="third">Third-party licences</button></div></div>
         <div class="set-row"><div class="set-label">User guide</div><div class="set-input"><button class="small-btn" data-guide>Open (F1)</button></div></div>
         <div class="set-row"><div class="set-label">What's new in each version</div><div class="set-input"><button class="small-btn" data-changelog>Changelog</button></div></div>`;

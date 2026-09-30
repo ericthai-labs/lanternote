@@ -1,7 +1,7 @@
 // Lanternote — writes THIRD-PARTY-NOTICES.txt: the licence text of every
 // library shipped inside the app. MIT / Apache / MPL licences require these
 // notices to travel with any copy that is distributed.
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..');
 

@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Stops a release build when CHANGELOG.md has no entry for the version in
 // package.json, so every published version says what changed.
 // Runs before `npm run dist:*` (npm "pre" scripts).

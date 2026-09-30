@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — editing.
 //   • Ctrl+E switches the open note between reading and editing (CodeMirror 6);
 //     edits are saved on their own ~0.8 s after typing stops, and before
@@ -34,6 +34,9 @@ const Ed = (() => {
       linkOptions,
       tagOptions,
       onPasteFiles: pasteFiles,
+      livePreview: Prefs.get('livePreview'),
+      imageUrl: (src, wiki) => pictureUrl(src, path, wiki),
+      onOpenLink: (link, how) => followLink(link, path, { ...how, pane: 'main' }),
     });
   }
   function setState(s) { g('editState').textContent = s; }
@@ -173,14 +176,14 @@ const Ed = (() => {
   }
 
   // ---------------- attachments ----------------
-  async function pasteFiles(files) {
-    if (!path) return '';
+  async function pasteFiles(files, into = path) {
+    if (!into) return '';
     const parts = [];
     for (const f of files) {
       const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
       const name = f.name && f.name !== 'image.png' ? f.name : `Pasted image ${stamp}.${(f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`;
       try {
-        const loc = Prefs.get('attachmentLocation'), nd = dirOf(path);
+        const loc = Prefs.get('attachmentLocation'), nd = dirOf(into);
         const dir = loc === 'sub' ? (nd ? nd + '/' : '') + 'attachments' : loc === 'folder' ? cleanDir(Prefs.get('attachmentFolder')) : nd;
         const rel = await window.api.attach(dir, name, new Uint8Array(await f.arrayBuffer()));
         parts.push(`![[${baseOf(rel)}]]`);
@@ -310,6 +313,7 @@ const Ed = (() => {
       } catch { failed++; }
       if (i % 25 === 0) setStatus(`Updating links ${i + 1} / ${sources.length}`);
     }
+    Tabs.renamed(from, to); Split.renamed(from, to);
     const canvases = policy === 'never' ? 0 : await CanvasView.renameFileIn(from, to);
     toast(`Renamed. ${links} link${links === 1 ? '' : 's'} updated in ${notes} note${notes === 1 ? '' : 's'}` + (canvases ? ` and ${canvases} canvas${canvases === 1 ? '' : 'es'}` : '') + (failed ? ` · ${failed} could not be updated` : ''));
     if (wasOpen) { if (path === from) path = to; await openWhenIndexed(to, mode === 'edit'); }
@@ -338,8 +342,7 @@ const Ed = (() => {
   }
 
   // ---------------- task checkboxes in reading view ----------------
-  async function toggleTaskAt(index) {
-    const p = current;
+  async function toggleTaskAt(index, p = current) {
     const cur = await window.api.loadNote(p);
     const lines = cur.text.split('\n');
     let fence = false, n = -1;
@@ -353,7 +356,8 @@ const Ed = (() => {
         const res = await window.api.saveNote(p, text, cur.mtime);
         if (res.conflict) { toast('The note changed on disk — try again'); return; }
         cacheText(p, text);
-        const y = g('main').scrollTop; current = null; await openNote(p, '', { push: false }); g('main').scrollTop = y;
+        if (p === current) { const y = g('main').scrollTop; current = null; await openNote(p, '', { push: false }); g('main').scrollTop = y; }
+        Split.refresh([p]);
         return;
       }
     }
@@ -399,6 +403,8 @@ const Ed = (() => {
   function noteMenu(p, x, y) {
     menu(x, y, [
       { label: 'Open', run: () => openNote(p) },
+      { label: 'Open in new tab', run: () => Tabs.openNew(p) },
+      { label: 'Open in the right pane', run: () => Split.open(p, '', { newTab: true }) },
       { label: 'Edit', run: () => { mode = 'edit'; current = null; openNote(p); } },
       '-',
       { label: 'New note in this folder', run: () => newNote(dirOf(p)) },
@@ -435,6 +441,13 @@ const Ed = (() => {
     ['Insert template', 'Alt+E', () => Templates.insert()],
     ['New note from template…', '', () => Templates.newFromTemplate()],
     ['Toggle reading / editing', 'Ctrl+E', () => toggle()],
+    ['New tab', 'Ctrl+T', () => Tabs.newTab()],
+    ['Close tab', 'Ctrl+W', () => closeTab()],
+    ['Next tab', 'Ctrl+Tab', () => cycleTab(1)],
+    ['Previous tab', 'Ctrl+Shift+Tab', () => cycleTab(-1)],
+    ['Open this note in the right pane', 'Ctrl+Alt+→', () => current && Split.open(current, '', { newTab: true })],
+    ['Close the right pane', '', () => Split.hide()],
+    ['Toggle live preview', '', () => Prefs.set('livePreview', !Prefs.get('livePreview'))],
     ["Open today's daily note", '', () => dailyNote()],
     ['Rename current note…', '', () => current && renamePrompt(current)],
     ['Move current note to folder…', '', () => current && movePrompt(current)],
@@ -527,12 +540,13 @@ const Ed = (() => {
   }
 
   return {
+    linkOptions, tagOptions, pasteFiles, // shared with the editor in the right pane
     get mode() { return mode; },
     get renaming() { return renaming; },
     get path() { return path; },
     active, show, hide, flush, initMode, externalChange, toggle, toggleTo, newNote, createFromLink, dailyNote, palette, toggleTaskAt,
-    themeChanged() { if (cm) cm.setDark(document.documentElement.dataset.theme === 'dark'); },
-    settingsChanged() { if (cm) cm.view.dispatch({}); },
+    themeChanged() { if (cm) cm.setDark(document.documentElement.dataset.theme === 'dark'); Split.themeChanged(); },
+    settingsChanged() { if (cm) { cm.setLivePreview(Prefs.get('livePreview')); cm.view.dispatch({}); } Split.settingsChanged(); },
     // insert text at the cursor of the note being edited (templates)
     // atEnd: append after the note's text (used when the user was reading, so the cursor means nothing)
     insertText(t, atEnd) {

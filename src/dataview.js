@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — query language compatible with the Dataview query
 // language (DQL), so ```dataview blocks written for it elsewhere give the same
 // result here. Loaded by the indexer (require) which runs queries over the

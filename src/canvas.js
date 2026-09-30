@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — Canvas: open and edit `.canvas` files in the JSON Canvas 1.0
 // format (jsoncanvas.org), an open format shared by several note apps, so a canvas made in
 // either app opens in the other.

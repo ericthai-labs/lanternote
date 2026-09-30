@@ -10,7 +10,7 @@ Read, edit, search, query and map 200,000 notes on Windows, macOS or Linux — n
 [![Release](https://img.shields.io/github/v/release/ericthai-labs/lanternote?color=f0b541&label=release)](https://github.com/ericthai-labs/lanternote/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0f1422)](#download)
 [![Offline](https://img.shields.io/badge/works-offline-2e7d5b)](#privacy)
-[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-c27a12)](LICENSE.txt)
+[![License](https://img.shields.io/badge/license-Apache%202.0-c27a12)](LICENSE.txt)
 
 [Download](#download) · [Features](#features) · [Performance](#performance) · [User guide](docs/guide/User-Guide.md) · [Build from source](#build-from-source) · [Changelog](CHANGELOG.md)
 
@@ -61,7 +61,7 @@ The **Map** engine lays out hundreds of thousands of notes once, in the backgrou
 <td valign="top">
 
 ### Editing that protects your work
-Auto-save, per-note undo, `[[` and `#` completion, paste images, rename with link updates, and version history. If a file changes on disk while you edit, you choose which version to keep.
+Live preview (Markdown marks hide away from the cursor; checkboxes, pictures and links work as you write), tabs, and a right pane to read one note while you write another. Auto-save, per-note undo, `[[` and `#` completion, paste images, rename with link updates, and version history. If a file changes on disk while you edit, you choose which version to keep.
 
 <img src="docs/images/editing.jpg" alt="Editor">
 </td>
@@ -222,7 +222,8 @@ npm run dist:win   # portable .exe and .zip in dist/
 | `indexer.js`, `search-index.js` | Worker thread: parsing, disk cache, search, queries |
 | `layout-worker.js`, `src/atlas.js` | Graph "Map" engine |
 | `src/graph.js` | Graph "Live" engine (cosmos.gl) |
-| `src/app.js`, `src/edit.js`, `editor/` | Reader and editor (CodeMirror 6) |
+| `src/app.js`, `src/edit.js`, `editor/` | Reader and editor (CodeMirror 6, live preview in `editor/live-preview.js`) |
+| `src/panes.js` | Tabs and the right pane |
 | `src/command.js`, `src/dataview.js`, `src/dvview.js`, `src/kanban.js`, `src/canvas.js` | Command Center, queries, Kanban, Canvas |
 | `mcp/lanternote-mcp.js` | MCP server for AI assistants (no extra dependencies); `scripts/make-mcpb.js` packs it as a Claude Desktop extension |
 | `tests/`, `scripts/drive.js` | Automated tests that drive the app through DevTools |
@@ -234,21 +235,22 @@ node scripts/bench-index.js <folder> <words>         # index and search timings
 npm run media -- <work-folder>                        # rebuild guide, adverts and README pictures
 ```
 
-Every version bump needs a `## x.y.z` entry in [CHANGELOG.md](CHANGELOG.md); `npm run dist:*` stops without one. Run UI tests only on throw-away folders — they create, rename and delete files.
+Every version bump needs a `## x.y.z` entry in [CHANGELOG.md](CHANGELOG.md); `npm run dist:*` stops without one. Pushing a tag `vx.y.z` releases it: CI tests and builds on Windows, macOS and Linux, then publishes the GitHub release (notes from the changelog, via `scripts/release-notes.js`) and the MCP Registry entry. Run UI tests only on throw-away folders — they create, rename and delete files.
 
 </details>
 
 ## Contributing
 
-Bug reports and suggestions are welcome in [Issues](https://github.com/ericthai-labs/lanternote/issues). Pull requests are welcome too; by submitting one you agree that it may be released as part of Lanternote under its licence.
+Bug reports and suggestions are welcome in [Issues](https://github.com/ericthai-labs/lanternote/issues). Pull requests are welcome too; contributions are accepted under the Apache License 2.0.
 
 ## License
 
-Lanternote is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE.txt):
+Lanternote is **open source** under the [Apache License 2.0](LICENSE.txt):
 
-- ✅ Free for personal use, study and hobby projects, and for noncommercial organisations (charities, schools, public bodies).
-- ✅ You may read the code, change it and share changes for noncommercial purposes, keeping the copyright notice.
-- ❌ Commercial use — including internal use at a company — needs a separate licence. [Open an issue](https://github.com/ericthai-labs/lanternote/issues) to ask.
+- ✅ Free for any use — personal, education, nonprofit and commercial, including internal use at a company.
+- ✅ You may change the code and redistribute it, as long as you keep the licence and the [NOTICE](NOTICE) file and mark the files you changed.
+
+Versions up to 1.18.0 were released under the PolyForm Noncommercial License 1.0.0; from 1.18.1 on, Lanternote is Apache 2.0.
 
 Bundled open-source libraries keep their own licences, listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 

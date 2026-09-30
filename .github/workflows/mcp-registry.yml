@@ -2,10 +2,9 @@ name: Publish to the MCP Registry
 
 # Publishes server.json (built by scripts/make-mcpb.js) to registry.modelcontextprotocol.io
 # as io.github.ericthai-labs/lanternote. Authenticates with GitHub OIDC: no secrets, no
-# personal account. Runs when a release is published (the .mcpb is already attached then).
+# personal account. Releases publish it by themselves (the release job in ci.yml);
+# this workflow is for running it again by hand, with the server.json committed here.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:

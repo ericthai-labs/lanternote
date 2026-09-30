@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — renderer. Everything the reader shows is built here from the
 // vault snapshot the main process hands over (file list + note texts).
 'use strict';
@@ -25,7 +25,7 @@ const V = {
 };
 const TEXT_CACHE = 400;
 let current = null;        // path of the note on screen
-const hist = []; let hIdx = -1;
+let hist = []; let hIdx = -1; // the active tab's history (panes.js)
 const stack = [];          // render context stack (for embeds)
 const ctx = () => stack[stack.length - 1] || { from: current, depth: 0 };
 const isNote = (p) => p != null && V.idx.has(p) && MD_EXT.test(p);
@@ -261,7 +261,7 @@ async function openCanvas(p, push) {
   document.title = baseOf(p).replace(CANVAS_EXT, '') + ' — Lanternote';
   g('outline').innerHTML = '<div class="muted small">Canvas</div>';
   renderSide();
-  markTree(); updateNav();
+  markTree(); updateNav(); Tabs.sync();
   window.api.setSetting('lastNote:' + V.name, p);
 }
 async function openBoard(p, push) {
@@ -273,7 +273,7 @@ async function openBoard(p, push) {
   if (push) { hist.splice(hIdx + 1); hist.push(p); hIdx = hist.length - 1; }
   document.title = stem(p) + ' — Lanternote';
   g('outline').innerHTML = '<div class="muted small">Board</div>';
-  renderSide(); markTree(); updateNav();
+  renderSide(); markTree(); updateNav(); Tabs.sync();
   window.api.setSetting('lastNote:' + V.name, p);
 }
 function leaveBoard() {
@@ -328,7 +328,7 @@ async function openNote(p, sub = '', { push = true } = {}) {
   document.title = stem(p) + ' — Lanternote';
   markTree();
   renderSide();
-  updateNav();
+  updateNav(); Tabs.sync();
   window.api.setSetting('lastNote:' + V.name, p);
   if (Ed.mode === 'edit') { try { await Ed.show(p); } catch (e) { toast('Could not open for editing: ' + e.message); } }
   else Ed.hide();
@@ -441,7 +441,37 @@ async function openDoc(kind) {
   g('backlinks').innerHTML = g('outlinks').innerHTML = '<div class="muted small">—</div>';
   g('blCount').textContent = g('olCount').textContent = '';
   markTree();
+  Tabs.sync(kind === 'changelog' ? "What's new" : 'User guide');
 }
+
+// ---------------- links from the editors (live preview) ----------------
+// the address of a picture written in note `from`, or null if it is not one
+function pictureUrl(src, from, wiki) {
+  if (!src) return null;
+  if (!wiki && /^(https?:|data:)/i.test(src)) return src;
+  const file = wiki ? linkTarget(src).file : src.split('#')[0];
+  const p = file ? resolve(file, from) : null;
+  return p && IMG_EXT.test(p) ? vaultUrl(p) : null;
+}
+// a link clicked in pane `how.pane`: newTab (Ctrl), otherPane (Alt)
+function followLink(link, from, how = {}) {
+  let file, sub = '';
+  if (link.href != null) {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(link.href)) { window.api.openExternal(link.href); return; }
+    const [f, s2 = ''] = link.href.split('#'); file = f; sub = safeDecode(s2);
+  } else ({ file, sub } = linkTarget(link.target));
+  const p = file ? resolve(file, from) : from;
+  if (!p) { Ed.createFromLink(file); return; }
+  openIn(p, sub, how);
+}
+function openIn(p, sub = '', { pane = 'main', newTab = false, otherPane = false } = {}) {
+  const to = otherPane ? (pane === 'main' ? 'split' : 'main') : pane;
+  if (to === 'split') return Split.open(p, sub, { newTab });
+  if (newTab) return Tabs.openNew(p, sub);
+  return openNote(p, sub);
+}
+const closeTab = () => (focusPane === 'split' && Split.visible ? Split.close() : Tabs.close());
+const cycleTab = (step) => (focusPane === 'split' && Split.visible ? Split.cycle(step) : Tabs.cycle(step));
 
 // ---------------- side panels ----------------
 const SIDE_MAX = 500; // a hub note can have tens of thousands of backlinks
@@ -628,8 +658,10 @@ function fuzzy(q, s) {
   }
   return qi === q.length ? { score: score - s.length * 0.05, pos } : null;
 }
+let swTarget = null; // 'tab' or 'split' when the pick opens there
 function openSwitcher(o = {}) {
   if (!V.name) return pickVault();
+  swTarget = o.newTab ? 'tab' : o.split ? 'split' : null;
   g('switcher').hidden = false;
   g('swInput').placeholder = o.placeholder || 'Type a note name…';
   g('swInput').value = '';
@@ -690,7 +722,13 @@ function drawSw() {
 }
 function closeSwitcher() { g('switcher').hidden = true; if (Picker.active) Picker.done(null); }
 // Enter / click in the quick-open box: open the file, or hand it to a picker
-function chooseSw(it) { const pick = Picker.active; if (pick) Picker.done(it && it.p); closeSwitcher(); if (!pick && it) openNote(it.p); }
+function chooseSw(it) {
+  const pick = Picker.active, to = swTarget; swTarget = null;
+  if (pick) Picker.done(it && it.p);
+  closeSwitcher();
+  if (pick || !it) return;
+  if (to === 'tab') Tabs.openNew(it.p); else if (to === 'split') Split.open(it.p, '', { newTab: true }); else openNote(it.p);
+}
 
 // ---------------- vault loading ----------------
 function afterIndex() {
@@ -716,14 +754,15 @@ function loadVault(data, keepNote) {
   window.api.getSetting('lastNote:' + V.name).then((last) => {
     const first = [last, 'README.md', 'Home.md', 'index.md'].find((p) => p && (isNote(p) || (CANVAS_EXT.test(p) && V.idx.has(p))))
       || V.notes.reduce((a, b) => (a == null || b < a ? b : a), null);
-    hist.length = 0; hIdx = -1; current = null;
-    if (first) openNote(first); else { g('note').hidden = true; g('welcome').hidden = false; toast('No Markdown files in this folder.'); }
+    Tabs.restore(first).then(() => Split.restore());
+    if (!first) toast('No Markdown files in this folder.');
   });
 }
 // The indexer noticed edits on disk: swap in the new index and re-show
 // the open note if it was one of the changed files.
 function applyChange({ snapshot, changed }) {
   for (const p of changed) V.text.delete(p);
+  Split.refresh(changed);
   if (!snapshot) {
     // only canvases / pictures were rewritten; the index did not change
     if (CanvasView.active() && changed.includes(CanvasView.path)) CanvasView.externalChange();
@@ -765,6 +804,7 @@ function showView(v) {
   g('graphView').hidden = v !== 'graph';
   g('ccView').hidden = v !== 'cc';
   g('main').hidden = v !== 'note';
+  g('center').hidden = v !== 'note';
   g('btnGraph').classList.toggle('on', v === 'graph');
   g('btnHome').classList.toggle('on', v === 'cc');
   if (v === 'cc') CC.show(); else CC.hide();
@@ -778,7 +818,7 @@ function toggleCC() {
 function toggleGraph(mode) {
   if (view === 'graph' && (!mode || mode === Graph.mode)) { showView('note'); return; }
   if (!V.name) return;
-  if (mode && mode !== Graph.mode) { if (view !== 'graph') { view = 'graph'; g('graphView').hidden = false; g('main').hidden = true; g('ccView').hidden = true; CC.hide(); g('btnHome').classList.remove('on'); g('btnGraph').classList.add('on'); } Graph.show(mode, current); return; }
+  if (mode && mode !== Graph.mode) { if (view !== 'graph') { view = 'graph'; g('graphView').hidden = false; g('main').hidden = true; g('center').hidden = true; g('ccView').hidden = true; CC.hide(); g('btnHome').classList.remove('on'); g('btnGraph').classList.add('on'); } Graph.show(mode, current); return; }
   showView('graph');
 }
 function setStatus(msg) { g('status').textContent = msg; }
@@ -812,10 +852,12 @@ function go(step) {
 // one click handler for every link-like element in the app
 document.addEventListener('click', (e) => {
   // task checkboxes in reading view write back to the file
-  const pic = e.target.closest('#note img');
+  const pic = e.target.closest('#note img, #splitNote img');
   if (pic && !e.target.closest('a')) { e.preventDefault(); Viewer.openFromNote(pic); return; }
   const cb = e.target.closest('#note input[type=checkbox][data-task]');
   if (cb) { e.preventDefault(); Ed.toggleTaskAt(+cb.dataset.task); return; }
+  const scb = e.target.closest('#splitNote input[type=checkbox][data-split-task]');
+  if (scb) { e.preventDefault(); Ed.toggleTaskAt(+scb.dataset.splitTask, Split.path); return; }
   const a = e.target.closest('a, [data-kb-lane], [data-path], [data-tag], [data-h], [data-reveal], [data-board], .callout.foldable > .callout-title, .row, [data-i]');
   if (!a) return;
   if (a.matches('.callout-title')) { a.parentElement.classList.toggle('folded'); return; }
@@ -826,12 +868,25 @@ document.addEventListener('click', (e) => {
   if (a.dataset.h) { e.preventDefault(); const h = g(a.dataset.h); if (h) h.scrollIntoView({ block: 'start' }); return; }
   if (a.dataset.tag) { e.preventDefault(); searchTag(a.dataset.tag); return; }
   if (a.dataset.missing != null) { e.preventDefault(); Ed.createFromLink(a.dataset.missing); return; }
-  if (a.dataset.path) { e.preventDefault(); openNote(a.dataset.path, a.dataset.sub || ''); return; }
+  if (a.dataset.path) {
+    e.preventDefault();
+    const how = { pane: a.closest('#split') ? 'split' : 'main', newTab: e.ctrlKey || e.metaKey, otherPane: e.altKey };
+    // links in notes follow the pane they are in; lists (files, search, backlinks) open in the main pane
+    if (a.closest('#note, #splitNote') || how.newTab || how.otherPane) openIn(a.dataset.path, a.dataset.sub || '', how);
+    else openNote(a.dataset.path, a.dataset.sub || '');
+    return;
+  }
   if (a.matches('.row.more')) { showMore(a); return; }
   if (a.closest('li.dir') && a.matches('.row')) { toggleDir(a.parentElement); return; }
   if (a.tagName === 'A' && a.getAttribute('href')) { e.preventDefault(); window.api.openExternal(a.href); }
 });
-document.addEventListener('auxclick', (e) => { if (e.target.closest('a')) e.preventDefault(); });
+// middle click on a link or a file: a new tab
+document.addEventListener('auxclick', (e) => {
+  if (e.button !== 1) { if (e.target.closest('a')) e.preventDefault(); return; }
+  const a = e.target.closest('[data-path]');
+  if (a && !a.closest('#tabbar, #splitTabs')) { e.preventDefault(); openIn(a.dataset.path, a.dataset.sub || '', { pane: a.closest('#split') ? 'split' : 'main', newTab: true }); return; }
+  if (e.target.closest('a')) e.preventDefault();
+});
 
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
 g('btnOpen').onclick = g('btnOpen2').onclick = pickVault;
@@ -875,8 +930,10 @@ window.api.onMenu((cmd) => {
     'command-center': () => toggleCC(), graph: () => toggleGraph('global'), 'graph-local': () => toggleGraph('local'),
     guide: openGuide, changelog: () => openDoc('changelog'),
     'insert-template': () => Templates.insert(), 'new-from-template': () => Templates.newFromTemplate(),
+    'new-tab': () => Tabs.newTab(), 'close-tab': () => closeTab(), 'next-tab': () => cycleTab(1), 'prev-tab': () => cycleTab(-1),
+    'split-open': () => current && Split.open(current, '', { newTab: true }), 'split-close': () => Split.hide(),
     'new-note': () => Ed.newNote(), 'new-canvas': () => CanvasView.create(), 'new-board': () => KanbanView.create(), 'toggle-edit': () => Ed.toggle(), palette: () => Ed.palette(), settings: () => Prefs.open(),
-    flush: async () => { try { await Ed.flush(); await KanbanView.flush(); } finally { window.api.flushed(); } },
+    flush: async () => { try { await Ed.flush(); await Split.flush(); await KanbanView.flush(); } finally { window.api.flushed(); } },
   }[cmd] || (() => {}))();
 });
 // files changed on disk (edited in another app, VS Code, synced by OneDrive…)

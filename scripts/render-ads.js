@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Advert pictures and the illustrated guide PDF, from the screenshots of
 // scripts/shots.js. Normally run by scripts/make-media.js; by hand:
 //   LANTERNOTE_SRC=. npx electron scripts/render-ads.js <shots dir> <ads out dir> [guide.md guide.pdf]
@@ -44,12 +44,13 @@ const FEATURES = [
   ['▦', 'Live queries', 'Tables, lists and month calendars that update as notes change.'],
   ['⚹', 'Link graph', 'Hundreds of thousands of links, laid out once — no graphics card needed.'],
   ['⚡', 'Built for size', '≈ 200,000 notes: opens in 1–2 s, queries in ≈ 0.1 s.'],
+  ['✎', 'Live preview, tabs, split', 'See Markdown as you type; many notes open; read on the right while you write.'],
   ['◈', 'Works with your AI', 'Claude and other MCP assistants search, query and edit your notes — every change undoable.'],
-  ['◉', 'Your files, your PC', 'Plain Markdown, wiki links, canvas. No account, no cloud. Portable, no install.'],
 ];
 const COMPARE = [
   ['Notes stay on your PC, works offline', 'y', 'n', 'y'],
   ['Plain Markdown files you own', 'y', 'n', 'y'],
+  ['Live preview of plain Markdown, tabs, split panes', 'y', 'v', 'v'],
   ['Tested with 200,000 notes', 'y', 'v', 'v'],
   ['Link graph without a graphics card', 'y', 'v', 'v'],
   ['Command Center + galaxy of your notes', 'y', 'n', 'n'],
@@ -135,6 +136,12 @@ const ADS = [
       <p class="sub" style="font-size:26px">Drag cards between lanes. Due dates turn red when late. Every board is a plain Markdown file.</p>
     </div>
     <div class="shot" style="position:absolute;left:170px;right:170px;top:300px;height:700px"><img src="${url('ad-raw-kanban-wide.png')}" style="width:2250px;max-width:none;margin:-46px 0 0 -8px"></div>`],
+  ['ad-11-write-1920x1080', 1920, 1080, `<div class="bg"></div>
+    <div style="position:absolute;left:0;right:0;top:66px;text-align:center">${brand}
+      <h1 style="font-size:64px;margin:24px 0 12px">Write in Markdown. <em>See it as you type.</em></h1>
+      <p class="sub" style="font-size:26px">Live preview hides the marks away from the cursor. Tabs keep many notes open; the right pane shows one while you write another.</p>
+    </div>
+    <div style="position:absolute;left:170px;right:170px;top:320px">${crop('ad-raw-write-wide.png')}</div>`],
   ['sq-01-galaxy-1080x1080', 1080, 1080, `
     ${bgImg('ad-raw-galaxy-square.png', '0 -40px', '1080px 1080px')}
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,15,.97) 0%,rgba(5,7,15,.75) 22%,rgba(5,7,15,0) 40%,rgba(5,7,15,0) 80%,rgba(5,7,15,.9) 100%)"></div>

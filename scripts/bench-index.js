@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Benchmarks the indexer on a real folder, without the window:
 //   node scripts/bench-index.js "<vault folder>" [search words]
 // Runs open twice (cold = no cache, warm = with cache), then a search.

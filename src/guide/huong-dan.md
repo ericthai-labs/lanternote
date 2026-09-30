@@ -72,8 +72,35 @@ Nhấn **Ctrl+E** (hoặc nút ✎) để chuyển giữa **đọc** và **sửa
 | Ctrl+F | Tìm / thay thế trong ghi chú đang sửa |
 | Tab / Shift+Tab | Thụt / bỏ thụt dòng |
 
+### Live preview (xem trước khi sửa)
+
+Khi sửa, các ký hiệu Markdown (`**`, `#`, `>`, `[[ ]]`, địa chỉ link…) được **ẩn đi ở mọi chỗ trừ chỗ có con trỏ**: tiêu đề hiện chữ lớn, việc cần làm hiện ô tick (bấm để tick), ảnh hiện ngay trong ghi chú, link bấm được. Đưa con trỏ vào một link hay chữ đậm thì ký hiệu hiện lại để sửa. File vẫn là Markdown thuần — không có gì thêm vào.
+
+- **Bấm** link: mở ghi chú · **Ctrl+bấm**: mở ở tab mới · **Alt+bấm**: mở ở khung bên phải.
+- Tắt / bật: **Cài đặt → Editor → Live preview**, hoặc Ctrl+P → *Toggle live preview*.
+
 > [!warning] Khi file bị sửa ở nơi khác
 > Nếu trong lúc bạn đang sửa, file bị thay đổi bởi OneDrive, một ứng dụng khác hay người khác, Lanternote **không ghi đè** mà hiện thông báo: chọn **Keep my version** (giữ bản của bạn) hoặc **Load the other version** (lấy bản kia). Nếu bạn chưa gõ gì, bản mới được nạp tự động.
+
+## 4b. Nhiều tab và chia khung
+
+**Tab** — mở nhiều ghi chú cùng lúc, thanh tab nằm trên vùng ghi chú. Mỗi tab có lịch sử Lùi / Tiến riêng; danh sách tab của mỗi thư mục được nhớ cho lần mở sau.
+
+| Cách | Tác dụng |
+|---|---|
+| Ctrl+T hoặc nút **+** | Tab mới (chọn ghi chú để mở) |
+| Ctrl+W, nút **×**, hoặc bấm chuột giữa vào tab | Đóng tab |
+| Ctrl+Tab / Ctrl+Shift+Tab | Sang tab sau / trước |
+| Ctrl+bấm hoặc bấm chuột giữa vào link, file | Mở ở tab mới |
+| Kéo tab | Đổi thứ tự |
+
+**Khung bên phải** — đọc một ghi chú trong khi viết ghi chú khác.
+
+- Mở: **Alt+bấm** một link, chuột phải vào file → **Open in the right pane**, hoặc **Ctrl+Alt+→** (mở ghi chú đang xem).
+- Khung phải có **tab và lịch sử riêng**; link bấm trong khung phải mở ngay trong khung đó.
+- Nút trên khung: **‹** lùi · **✎** đọc ⇄ sửa · **⇤** mở ghi chú này ở khung chính · **✕** đóng khung.
+- Sửa ở khung phải cũng **tự lưu**, cũng **không ghi đè** khi file bị đổi ở nơi khác (hiện lựa chọn như khung chính). Cùng một ghi chú mở ở cả hai khung: sửa bên này thì bên kia tự cập nhật.
+- Kéo **đường chia** giữa hai khung để đổi độ rộng.
 
 ## 5. Quản lý ghi chú và thư mục
 
@@ -292,6 +319,10 @@ Trợ lý AI hỗ trợ **MCP** (Claude Code, Claude Desktop…) có thể làm 
 | Ctrl+Shift+H | Command Center |
 | Ctrl+G / Ctrl+Shift+G | Đồ thị toàn bộ / quanh ghi chú |
 | Alt+← / Alt+→ | Lùi / tiến |
+| Ctrl+T / Ctrl+W | Tab mới / đóng tab |
+| Ctrl+Tab / Ctrl+Shift+Tab | Tab sau / trước |
+| Ctrl+Alt+→ | Mở ghi chú đang xem ở khung phải |
+| Ctrl+bấm / Alt+bấm link | Mở ở tab mới / khung bên kia |
 | Ctrl+\\ / Ctrl+Shift+\\ | Ẩn/hiện cột trái / cột phải |
 | Ctrl+Shift+D | Sáng / tối |
 | Ctrl+R | Nạp lại thư mục |
@@ -321,4 +352,4 @@ Mở Thùng rác của Windows và khôi phục. Lỡ sửa sai nội dung: dùn
 
 ---
 
-© 2026 Eric Thai - Thai Ba Hoa. Giấy phép PolyForm Noncommercial 1.0.0: dùng miễn phí cho cá nhân và tổ chức phi lợi nhuận; dùng thương mại (kể cả doanh nghiệp dùng nội bộ) phải xin phép tác giả. Xem **Help → Licence**.
+© 2026 Eric Thai - Thai Ba Hoa. Mã nguồn mở theo giấy phép Apache 2.0: ai cũng được dùng miễn phí, kể cả doanh nghiệp và dùng thương mại; được sửa và phân phối lại, miễn là giữ giấy phép và file NOTICE. Xem **Help → Licence**.

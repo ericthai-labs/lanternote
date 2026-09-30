@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — indexer (worker thread).
 // Owns everything that scales with the vault size so neither the main
 // process nor the window has to hold 200,000 notes:
@@ -112,6 +112,10 @@ function saveCache(soon) {
       fs.mkdirSync(cacheDir, { recursive: true });
       const entries = [];
       for (const [p, m] of S.meta) entries.push([p, m]);
+      // Saved while a slow open is still checking notes (the app closed
+      // early): keep the old entries not checked yet, or the next open would
+      // have to read them all again. They are checked by mtime and size then.
+      if (S.prev) for (const [p, m] of S.prev) if (!S.meta.has(p)) entries.push([p, m]);
       const tmp = cacheFile(S.root) + '.tmp';
       fs.writeFileSync(tmp, v8.serialize({ version: CACHE_VERSION, root: S.root, entries, snap: S.snap }));
       fs.renameSync(tmp, cacheFile(S.root));
@@ -172,6 +176,7 @@ async function open(root) {
   const stale = [];
   let done = 0;
   S.opening = true;
+  S.prev = cache.meta;
   await pool(md, IO, async (p) => {
     try {
       const st = await fs.promises.stat(path.join(root, p));
@@ -194,6 +199,7 @@ async function open(root) {
   });
   const t3 = now();
   S.opening = false;
+  S.prev = null;
   resolveAll();
   const t4 = now();
   S.timing = { walk: t1 - t0, stat: t2 - t1, read: t3 - t2, resolve: t4 - t3, files: S.files.length, notes: md.length, reread: stale.length };

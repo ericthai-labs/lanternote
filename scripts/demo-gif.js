@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Records the short demo shown at the top of the README (docs/images/demo.gif),
 // on the made-up vault from scripts/make-demo-vault.js. Run by make-media.js, or:
 //   DEMO_OUT=<frames folder> node scripts/drive.js <demo vault> scripts/demo-gif.js

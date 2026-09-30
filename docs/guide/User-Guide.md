@@ -1,11 +1,11 @@
 ---
 title: Lanternote — User Guide
-version: 1.14.0
+version: 1.18.0
 ---
 
 # Lanternote — User Guide
 
-*Version 1.14.0. Every picture was taken on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
+*Version 1.18.0. Every picture was taken on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
 
 Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, backlinks, tags, canvases, live queries, tasks, calendars and a link graph. It stays fast on very large folders (measured on 200,000 notes), runs on PCs without a graphics card, and never sends your notes anywhere.
 
@@ -13,6 +13,8 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 
 | | |
 |---|---|
+| **Live preview** | Write in Markdown and see the result as you type: marks hide away from the cursor, checkboxes click, pictures show, links open. |
+| **Tabs and a right pane** | Several notes open at once, each tab with its own history; read one note on the right while you write another. |
 | **Your vault as a galaxy** | Every star is a note, every arm a folder. Zoom in to read names, click a star to open it. |
 | **Command Center** | One page with what matters: projects, due dates, open tasks, a calendar, recent notes — built from an ordinary note you can edit. |
 | **Live queries** | Tables, lists, task lists and month calendars from ` ```dataview ` blocks, updated as notes change. |
@@ -29,6 +31,8 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 |---|---|---|---|
 | Notes stay on your PC, works offline | ✅ always | ❌ stored on the provider's servers | ✅ |
 | Plain Markdown files you own | ✅ | ❌ usually a closed format | ✅ |
+| Live preview while editing plain Markdown | ✅ built in | ⚠️ a rich-text editor instead of Markdown | ⚠️ varies |
+| Tabs and side-by-side panes | ✅ built in | ⚠️ varies | ⚠️ varies |
 | Tested with 200,000 notes | ✅ measured | ⚠️ varies | ⚠️ varies |
 | Link graph without a graphics card | ✅ | ⚠️ varies | ⚠️ varies |
 | Command Center page + galaxy of your notes | ✅ built in | ❌ | ❌ not built in |
@@ -72,6 +76,19 @@ All the words must appear, with or without accents; matches are highlighted. `ta
 - **Ctrl+E** switches reading ⇄ editing. Saved as you type; **Undo / Redo / Versions** at the top.
 - Type `[[` to link to a note; rename a note in its title field — links to it are updated.
 - If the file is changed elsewhere while you edit, the app asks which version to keep and never overwrites silently.
+
+### Live preview
+
+![Live preview](img/g04b-live-preview.png)
+
+While you edit, Markdown marks (`**`, `#`, `>`, `[[ ]]`, link targets) are hidden everywhere except where the cursor is. Headings show large, tasks show checkboxes you can click, pictures appear in place, and links open with a click (Ctrl+click: new tab, Alt+click: right pane). Move the cursor into a link or bold text and its marks come back so you can change them. The file stays plain Markdown. Settings → Editor → **Live preview** turns it off.
+
+## 4b. Tabs and the right pane
+
+![Tabs and the right pane](img/g04c-tabs-split.png)
+
+- **Tabs**: Ctrl+T opens a note in a new tab, Ctrl+W closes one, Ctrl+Tab moves between them; Ctrl+click or middle-click any link or file to open it in a new tab. Each tab has its own Back / Forward, and the tabs of each folder come back next time.
+- **Right pane**: Alt+click a link, or right-click a file → *Open in the right pane* (Ctrl+Alt+→ for the note you are on). It has its own tabs and history, reads and edits, ticks tasks, and saves with the same protection as the main pane. Drag the divider to resize; ⇤ moves the note to the main pane.
 
 ## 5. Canvas
 
@@ -241,6 +258,10 @@ Every command in one list: type a few letters, ↑↓, Enter.
 | Ctrl+N | New note |
 | Ctrl+E | Read ⇄ edit |
 | Alt+E | Insert a template |
+| Ctrl+T / Ctrl+W | New tab / close tab |
+| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
+| Ctrl+Alt+→ | Open this note in the right pane |
+| Ctrl+click / Alt+click a link | Open in a new tab / in the other pane |
 | Ctrl+P | Command palette |
 | Ctrl+, | Settings |
 | Ctrl+Shift+D | Light / dark |

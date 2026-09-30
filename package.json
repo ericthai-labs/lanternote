@@ -1,11 +1,11 @@
 {
   "name": "lanternote",
   "productName": "Lanternote",
-  "version": "1.17.1",
+  "version": "1.18.1",
   "description": "Lanternote — Markdown notes with links, graph and editing, for very large vaults",
   "main": "main.js",
   "author": "Eric Thai - Thai Ba Hoa",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "Apache-2.0",
   "private": true,
   "scripts": {
     "start": "electron .",
@@ -71,11 +71,15 @@
         "role": "Viewer"
       }
     ],
-    "copyright": "Copyright © 2026 Eric Thai - Thai Ba Hoa. PolyForm Noncommercial 1.0.0.",
+    "copyright": "Copyright © 2026 Eric Thai - Thai Ba Hoa. Apache License 2.0.",
     "extraResources": [
       {
         "from": "LICENSE.txt",
         "to": "LICENSE.txt"
+      },
+      {
+        "from": "NOTICE",
+        "to": "NOTICE"
       },
       {
         "from": "THIRD-PARTY-NOTICES.txt",
@@ -87,5 +91,5 @@
       }
     ]
   },
-  "copyright": "Copyright © 2026 Eric Thai - Thai Ba Hoa. PolyForm Noncommercial 1.0.0."
+  "copyright": "Copyright © 2026 Eric Thai - Thai Ba Hoa. Apache License 2.0."
 }

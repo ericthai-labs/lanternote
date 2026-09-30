@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Copies the browser libraries into src/vendor so the app runs offline
 // and node_modules never has to be packaged.
 const fs = require('fs'), path = require('path');
@@ -20,6 +20,6 @@ require('esbuild').buildSync({
   entryPoints: [path.join(root, 'editor', 'entry.js')],
   bundle: true, minify: true, format: 'iife', globalName: 'LanternoteEditor',
   target: 'chrome120', outfile: path.join(out, 'editor.js'), logLevel: 'warning',
-  banner: { js: '/* Lanternote editor — Copyright © 2026 Eric Thai - Thai Ba Hoa. PolyForm Noncommercial 1.0.0. Includes CodeMirror 6 (MIT, Marijn Haverbeke and others) — see THIRD-PARTY-NOTICES.txt */' },
+  banner: { js: '/* Lanternote editor — Copyright © 2026 Eric Thai - Thai Ba Hoa. Apache License 2.0. Includes CodeMirror 6 (MIT, Marijn Haverbeke and others) — see THIRD-PARTY-NOTICES.txt */' },
 });
 console.log('vendor: editor.js');

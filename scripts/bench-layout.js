@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Runs the map layout on a real folder and writes a PNG preview:
 //   node scripts/bench-layout.js "<vault folder>" [out.png] [hubCap]
 const { Worker } = require('worker_threads');

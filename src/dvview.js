@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — shows ```dataview blocks as tables, lists, task lists and
 // month calendars (the query runs in the indexer, see dataview.js), and inserts templates (Templater-style
 // <% tp.file.title %> / <% tp.date.now("…") %> and core {{title}} / {{date}}).

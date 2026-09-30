@@ -50,6 +50,6 @@ Security problems: see [SECURITY.md](SECURITY.md) instead of opening a public is
 
 ## Licence of contributions
 
-Lanternote is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.txt). By submitting a contribution you agree that it may be used, changed and released as part of Lanternote under that licence or any other licence the author chooses.
+Lanternote is open source under the [Apache License 2.0](LICENSE.txt). Contributions are accepted under the same licence (section 5 of the licence).
 
 Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).

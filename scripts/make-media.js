@@ -1,7 +1,8 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Rebuilds the user guide (Markdown + PDF, English, with pictures) and the
 // advert pictures for the current version. RUN THIS FOR EVERY RELEASE.
-//   node scripts/make-media.js [work folder] [--to "<project folder>"] [--fresh]
+//   node scripts/make-media.js [work folder] [--to "<project folder>"] [--fresh] [--no-shots]
+// --no-shots reuses the screenshots of the last run (only the guide and adverts are rebuilt).
 // Steps: made-up demo vault (never real notes) → screenshots (scripts/shots.js)
 // → adverts + guide PDF (scripts/render-ads.js) → copied, with --to, into
 //   <project folder>/Quang-cao          ad-*.png (1920×1080), sq-*.png (1080×1080)
@@ -13,6 +14,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(n); if (i < 0) return null; const v = args[i + 1]; args.splice(i, 2); return v; };
 const fresh = args.includes('--fresh'); if (fresh) args.splice(args.indexOf('--fresh'), 1);
+const noShots = args.includes('--no-shots'); if (noShots) args.splice(args.indexOf('--no-shots'), 1);
 const to = flag('--to');
 const work = path.resolve(args[0] || path.join(os.tmpdir(), 'lanternote-media'));
 const src = path.join(__dirname, '..');
@@ -25,9 +27,11 @@ const run = (cmd, a, env = {}) => {
 const version = require(path.join(src, 'package.json')).version;
 
 fs.mkdirSync(work, { recursive: true });
-if (fresh || !fs.existsSync(path.join(demo, 'Welcome.md'))) run(process.execPath, ['scripts/make-demo-vault.js', demo]);
-fs.rmSync(shots, { recursive: true, force: true }); fs.mkdirSync(shots, { recursive: true });
-run(process.execPath, ['scripts/drive.js', demo, 'scripts/shots.js', shots], { THEME: 'dark' });
+if (!noShots) {
+  if (fresh || !fs.existsSync(path.join(demo, 'Welcome.md'))) run(process.execPath, ['scripts/make-demo-vault.js', demo]);
+  fs.rmSync(shots, { recursive: true, force: true }); fs.mkdirSync(shots, { recursive: true });
+  run(process.execPath, ['scripts/drive.js', demo, 'scripts/shots.js', shots], { THEME: 'dark' });
+}
 const need = ['g01-main-window', 'g11-command-center', 'g12-galaxy', 'ad-raw-galaxy-wide', 'ad-raw-tasks-square', 'ad-raw-graph-wide'];
 for (const n of need) if (!fs.existsSync(path.join(shots, n + '.png'))) throw new Error('screenshot missing: ' + n);
 
@@ -36,7 +40,7 @@ fs.rmSync(out, { recursive: true, force: true });
 const guide = path.join(out, 'guide'), ads = path.join(out, 'ads');
 fs.mkdirSync(path.join(guide, 'img'), { recursive: true });
 fs.writeFileSync(path.join(guide, 'Lanternote-User-Guide.md'), fs.readFileSync(path.join(src, 'docs', 'guide', 'User-Guide.md'), 'utf8').replace(/^version: .*$/m, 'version: ' + version).replace(/\*Version [\d.]+\./, `*Version ${version}.`));
-for (const f of fs.readdirSync(shots)) if (/^g\d+-.*\.png$/.test(f)) fs.copyFileSync(path.join(shots, f), path.join(guide, 'img', f));
+for (const f of fs.readdirSync(shots)) if (/^g\d+[a-z]?-.*\.png$/.test(f)) fs.copyFileSync(path.join(shots, f), path.join(guide, 'img', f));
 run(require(path.join(src, 'node_modules', 'electron')), ['scripts/render-ads.js', shots, ads, path.join(guide, 'Lanternote-User-Guide.md'), path.join(guide, 'Lanternote-User-Guide.pdf')], { LANTERNOTE_SRC: src });
 // the README pictures in the repository (docs/images) — commit them with the release
 run(require(path.join(src, 'node_modules', 'electron')), ['scripts/readme-images.js', shots, ads]);
@@ -58,7 +62,7 @@ if (to) {
   };
   sync(ads, path.join(to, 'Quang-cao'), /^(ad|sq)-.*\.png$/);
   sync(guide, path.join(to, 'Huong-dan-co-hinh'), /^(Huong-dan|Lanternote-User-Guide).*\.(md|pdf)$/);
-  sync(path.join(guide, 'img'), path.join(to, 'Huong-dan-co-hinh', 'img'), /^g\d+-.*\.png$/);
+  sync(path.join(guide, 'img'), path.join(to, 'Huong-dan-co-hinh', 'img'), /^g\d+[a-z]?-.*\.png$/);
   console.log('copied to', to);
 }
 console.log(`media for ${version} ready in`, out);

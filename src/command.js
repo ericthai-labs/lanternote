@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — Command Center: a dashboard page built from one ordinary note.
 // `# Left` / `# Center` / `# Right` headings pick the column, each `## Heading`
 // is a card, and a card holds any Markdown: ```dataview queries, links, lists,

@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Builds the Claude Desktop extension: dist-<version>/lanternote-<version>.mcpb
 // (an MCP Bundle — double-click to install, pick the notes folder, done).
 //   node scripts/make-mcpb.js [out folder]
@@ -16,7 +16,7 @@ const src = path.join(__dirname, '..');
 const pkg = require(path.join(src, 'package.json'));
 const version = pkg.version;
 const out = path.resolve(process.argv[2] || path.join(src, `dist-${version}`));
-const FILES = ['mcp/lanternote-mcp.js', 'indexer.js', 'search-index.js', 'src/core.js', 'src/dataview.js', 'package.json', 'LICENSE.txt'];
+const FILES = ['mcp/lanternote-mcp.js', 'indexer.js', 'search-index.js', 'src/core.js', 'src/dataview.js', 'package.json', 'LICENSE.txt', 'NOTICE'];
 const REPO = 'https://github.com/ericthai-labs/lanternote';
 
 const TOOLS = [
@@ -47,7 +47,7 @@ const manifest = {
   homepage: 'https://ericthai-labs.github.io/lanternote/',
   documentation: `${REPO}#readme`,
   support: `${REPO}/issues`,
-  license: 'PolyForm-Noncommercial-1.0.0',
+  license: 'Apache-2.0',
   keywords: ['markdown', 'notes', 'knowledge-base', 'wiki-links', 'dataview', 'tasks', 'search', 'pkm'],
   server: {
     type: 'node',
@@ -71,7 +71,7 @@ const manifest = {
 const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'lanternote-mcpb-'));
 try {
   for (const f of FILES) {
-    const to = path.join(stage, f === 'LICENSE.txt' || f === 'package.json' ? f : path.join('server', f));
+    const to = path.join(stage, f === 'LICENSE.txt' || f === 'NOTICE' || f === 'package.json' ? f : path.join('server', f));
     fs.mkdirSync(path.dirname(to), { recursive: true });
     fs.copyFileSync(path.join(src, f), to);
   }

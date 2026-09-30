@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — MCP server: lets an AI assistant (Claude Desktop, Claude Code,
 // any MCP client) search, read, query and edit a notes folder through the same
 // indexer the app uses. Speaks MCP over stdio (one JSON-RPC message per line).

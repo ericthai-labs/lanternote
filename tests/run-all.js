@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Runs every UI scenario in tests/ on fresh throw-away folders and prints a summary.
 //   node tests/run-all.js                      # from source
 //   node tests/run-all.js "<path to app exe>"  # a packaged build
@@ -38,6 +38,8 @@ const RUNS = [ // [scenario, folder, needs TV=<folder>, extra env]
   ['image-viewer.js', () => basicVault('iv')],
   ['changelog.js', () => basicVault('cl')],
   ['undo-redo.js', () => basicVault('ur')],
+  ['tabs-split.js', () => basicVault('ts'), true],
+  ['live-preview.js', () => basicVault('lp'), true],
   ['canvas.js', () => made('cv', 'make-canvas-vault.js'), true],
   ['dataview.js', () => made('dv', 'make-dv-vault.js'), true],
   ['kanban.js', () => made('kb', 'make-kanban-vault.js'), true],

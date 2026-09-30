@@ -2,6 +2,27 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.18.1
+
+### Changed
+- **Lanternote is now open source under the Apache License 2.0.** Anyone may use it for free, including companies and commercial use, and may change and redistribute it as long as the licence and the NOTICE file are kept. Versions up to 1.18.0 remain under the PolyForm Noncommercial License 1.0.0.
+
+## 1.18.0
+
+### Added
+- **Live preview while editing.** Markdown marks (`**`, `#`, `>`, `[[ ]]`, link targets…) are hidden except where the cursor is; bullets, checkboxes you can click, pictures, highlights, tags, quotes and rules show as in reading view. Click a link to open it. Settings → Editor → Live preview turns it off.
+- **Tabs.** Several notes open at once, each tab with its own Back / Forward. Ctrl+T new tab, Ctrl+W close, Ctrl+Tab / Ctrl+Shift+Tab to move; Ctrl+click or middle-click a link or a file to open it in a new tab; drag tabs to reorder. The tabs of each folder come back next time.
+- **Right pane.** Alt+click a link (or right-click a file → Open in the right pane, or Ctrl+Alt+→) to read one note while writing another. The pane has its own tabs and history, reads and edits (saved the same way, with the same protection against changes made elsewhere), ticks tasks, and can be resized by dragging the divider.
+- **Releases are built by CI.** A version tag builds Windows, macOS and Linux after the tests pass on all three, and publishes the GitHub release with the Claude Desktop extension and the MCP Registry entry.
+
+### Changed
+- List text in the editor keeps the normal text colour (only bullets use the accent colour).
+
+## 1.17.2
+
+### Fixed
+- Large folders were read again from scratch on every start. Closing the app while it was still checking notes saved an index cache holding only the notes checked so far; the next start then had to re-read the rest, and closing early again repeated the loop. The cache now keeps the notes not checked yet.
+
 ## 1.17.1
 
 ### Added

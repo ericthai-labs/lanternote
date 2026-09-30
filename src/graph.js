@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Lanternote — "Live (GPU)" graph engine. The default engine is the map
 // (atlas.js); this one runs a live force layout and needs a real GPU.
 // Drawn with cosmos.gl: the force layout and the drawing both run on the GPU

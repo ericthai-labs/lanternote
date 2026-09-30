@@ -1,4 +1,4 @@
-// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt.
+// Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Turns the frames recorded by scripts/demo-gif.js into docs/images/demo.gif.
 //   node scripts/make-gif.js <frames folder> [out.gif] [width]
 // Needs ffmpeg on PATH. Two passes: one palette for the whole clip, then the GIF.

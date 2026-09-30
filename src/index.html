@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Lanternote — Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under PolyForm Noncommercial 1.0.0 — see LICENSE.txt. -->
+<!-- Lanternote — Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -53,13 +53,16 @@
     <div id="status" class="status muted small"></div>
   </aside>
 
+  <div class="center" id="center">
+  <nav class="tabbar" id="tabbar" hidden></nav>
+  <div class="panes" id="panes">
   <main class="main" id="main">
     <div id="welcome" class="welcome">
       <h1>Lanternote</h1>
       <p>Reads and edits a folder of Markdown notes: wiki links, backlinks, tags, callouts, embedded notes and images. Nothing is uploaded — files stay on this computer.</p>
       <p><button class="primary" id="btnOpen2">Open a folder</button> <a href="#" id="guideLink" class="guide-link">User guide (F1)</a></p>
       <div id="loading" class="muted small"></div>
-      <p class="muted small author-line">© 2026 Eric Thai - Thai Ba Hoa · Noncommercial licence · <a href="#" id="aboutLink">About &amp; licence</a></p>
+      <p class="muted small author-line">© 2026 Eric Thai - Thai Ba Hoa · Apache 2.0 · <a href="#" id="aboutLink">About &amp; licence</a></p>
       <div id="recent"></div>
     </div>
     <article id="note" class="note" hidden></article>
@@ -118,6 +121,28 @@
       <div id="editorHost" class="editor-host"></div>
     </section>
   </main>
+  <div class="split-handle" id="splitHandle" hidden title="Drag to resize"></div>
+  <section class="split" id="split" hidden>
+    <div class="split-head">
+      <nav class="tabbar split-tabs" id="splitTabs"></nav>
+      <span id="splitState" class="muted small"></span>
+      <button class="tool" id="splitBack" title="Back in this pane">‹</button>
+      <button class="tool" id="splitEdit" title="Reading / editing in this pane">✎</button>
+      <button class="tool" id="splitSwap" title="Open this note in the main pane">⇤</button>
+      <button class="tool" id="splitClose" title="Close the right pane">✕</button>
+    </div>
+    <div id="splitConflict" class="conflict" hidden>
+      This note was changed elsewhere while you were editing it here.
+      <button id="splitKeep" class="small-btn">Keep my version</button>
+      <button id="splitTheirs" class="small-btn">Load the other version</button>
+    </div>
+    <div class="split-body" id="splitBody">
+      <article id="splitNote" class="note"></article>
+      <div id="splitEditor" class="editor-host" hidden></div>
+    </div>
+  </section>
+  </div>
+  </div>
 
   <section class="graph-view" id="graphView" hidden>
     <div class="graph-bar">
@@ -227,6 +252,7 @@
 <script src="dvview.js"></script>
 <script src="edit.js"></script>
 <script src="command.js"></script>
+<script src="panes.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
