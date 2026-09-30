@@ -504,3 +504,7 @@ select.tool { padding: 2px 4px; }
 .split-empty { padding: 40px; text-align: center; }
 @media (max-width: 900px) { .split, .split-handle, .split-tabs { display: none !important; } }
 @media print { .tabbar, .split, .split-handle { display: none !important; } }
+
+/* a picture from the internet that is not loaded yet (Settings → Files & links) */
+.web-pic { display: inline-block; padding: 6px 10px; border: 1px dashed var(--muted); border-radius: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
+.web-pic:hover { color: var(--accent); border-color: var(--accent); }

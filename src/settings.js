@@ -32,6 +32,7 @@ const Prefs = (() => {
       { key: 'renameLinks', label: 'When a note is renamed or moved', type: 'select', def: 'always', options: [['always', 'Update links to it'], ['ask', 'Ask first'], ['never', 'Leave links as they are']] },
       { key: 'confirmDelete', label: 'Ask before deleting', type: 'toggle', def: true },
       { key: 'showImages', label: 'Show pictures in the file list and quick open', type: 'toggle', def: true },
+      { key: 'remoteImages', label: 'Load pictures from the internet', type: 'toggle', def: false, help: 'Pictures in notes whose address starts with http:// or https://. Loading one tells its web server that the note was opened, and when. Off: a placeholder is shown instead; click it to load that one picture.' },
       { key: 'exclude', label: 'Folders to ignore', type: 'text', def: '', placeholder: 'comma separated, e.g. Archive, 99-Templates', help: 'Not indexed, searched or drawn. Takes effect when the folder is reloaded (Ctrl+R).' },
     ]],
     ['Daily notes', [
@@ -98,6 +99,7 @@ const Prefs = (() => {
     if ((changed === 'spellcheck' || changed === 'livePreview') && typeof Ed !== 'undefined') Ed.settingsChanged();
     if ((changed === 'dvDateFormat' || changed === 'dvDateTimeFormat') && typeof DvView !== 'undefined') DvView.refresh();
     if (changed === 'showImages' && typeof renderTree === 'function') { T = null; renderTree(); }
+    if (changed === 'remoteImages' && typeof openNote === 'function' && current && /\.md$/i.test(current)) openNote(current, '', { push: false });
     if ((changed === 'ccNote' || changed === 'ccBackground') && typeof CC !== 'undefined') CC.settingsChanged(changed);
     if ((changed === 'graphEngine' || changed === 'hubCap') && typeof Graph !== 'undefined') Graph.settingsChanged();
   }

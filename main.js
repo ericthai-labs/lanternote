@@ -287,6 +287,16 @@ ipcMain.handle('note:load', async (_e, rel) => {
 // its previous text is kept in userData/recovery — at most one copy per note
 // every 5 minutes, for 14 days. Never inside the vault, never synced.
 const prefs = () => readSettings().prefs || {};
+// Pictures from the internet (![](https://…) or <img src="https://…"> in a note) are
+// not fetched unless Settings → Files & links allows it or the reader clicks one to
+// load it: fetching a picture tells its web server who opened the note, and when.
+// Nothing else in the window uses the network, so every http(s) request is checked here.
+const allowedPictures = new Set();
+function guardWeb(ses) {
+  ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, done) =>
+    done({ cancel: !(prefs().remoteImages === true || allowedPictures.has(d.url)) }));
+}
+ipcMain.handle('picture:allow', (_e, url) => { if (/^https?:\/\//i.test(url)) allowedPictures.add(url); });
 const snapDir = (rel) => path.join(app.getPath('userData'), 'recovery',
   crypto.createHash('sha1').update(vaultRoot.toLowerCase()).digest('hex').slice(0, 12),
   crypto.createHash('sha1').update(rel).digest('hex').slice(0, 16));
@@ -494,6 +504,7 @@ function createWindow() {
     backgroundColor: '#1e1e1e',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
+  guardWeb(win.webContents.session);
   // Links never navigate the app window away; web links open in the browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^(https?|mailto):/i.test(url)) shell.openExternal(url);

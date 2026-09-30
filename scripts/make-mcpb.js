@@ -24,6 +24,7 @@ const TOOLS = [
   ['search', 'Full-text search in every note, accents optional'],
   ['find_notes', 'Find notes by name'],
   ['read_note', 'Read a note, or one section under a heading'],
+  ['verify_quote', 'Check that a quotation and its numbers really are in a note before citing it'],
   ['links', 'Outgoing links and backlinks of a note'],
   ['recent', 'Notes edited most recently'],
   ['query', 'Run a Dataview-language query (TABLE, LIST, TASK, CALENDAR) and get JSON'],

@@ -36,6 +36,7 @@ const RUNS = [ // [scenario, folder, needs TV=<folder>, extra env]
   ['settings.js', () => basicVault('st'), true],
   ['guide-about.js', () => basicVault('ga')],
   ['image-viewer.js', () => basicVault('iv')],
+  ['web-pictures.js', () => basicVault('wp'), true],
   ['changelog.js', () => basicVault('cl')],
   ['undo-redo.js', () => basicVault('ur')],
   ['tabs-split.js', () => basicVault('ts'), true],

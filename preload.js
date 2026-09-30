@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   versions: (rel) => ipcRenderer.invoke('note:versions', rel),
   reveal: (rel) => ipcRenderer.invoke('file:reveal', rel),
   openExternal: (url) => ipcRenderer.invoke('shell:external', url),
+  allowPicture: (url) => ipcRenderer.invoke('picture:allow', url),
   getSetting: (k) => ipcRenderer.invoke('settings:get', k),
   setSetting: (k, v) => ipcRenderer.invoke('settings:set', k, v),
   onChanged: (fn) => ipcRenderer.on('vault:changed', (_e, info) => fn(info)),

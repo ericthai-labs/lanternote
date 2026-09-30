@@ -170,6 +170,55 @@ async function runQuery(dql, from) {
 }
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
+// ---------------- checking a quotation against its source ----------------
+// Markdown marks, table bars, typographic quotes and spacing do not count; letters,
+// accents and numbers do. Numbers are compared as written ("1.5", "30-31-01", "12/05/2026").
+const flatLine = (s) => s.normalize('NFC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-')
+  .replace(/^\s{0,3}(?:#{1,6}\s+|>\s?|[-*+]\s+(?:\[.\]\s+)?|\d+[.)]\s+)/, '')
+  .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1').replace(/[*_`|~]|==/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+const flat = (s) => s.split(/\r?\n/).map(flatLine).filter(Boolean).join(' ');
+const numbersIn = (s) => (s.match(/\d+(?:[.,:/-]\d+)*%?/g) || []).map((n) => n.replace(/,(?=\d{3}\b)/g, ''));
+const wordsIn = (s) => s.match(/[\p{L}\p{N}]+/gu) || [];
+function checkQuote(text, quote, near) {
+  const lines = text.split(/\r?\n/), fl = lines.map(flatLine);
+  const qWords = wordsIn(flat(quote)), qNums = numbersIn(quote);
+  if (!qWords.length) throw new Error('The quotation has no words to check.');
+  // "exact" compares the words in order: punctuation and line breaks do not count
+  const qSeq = ' ' + qWords.join(' ') + ' ', qSet = new Set(qWords);
+  const lw = fl.map((l) => wordsIn(l).join(' '));
+  // the lines to look in: all, or around the line the quotation is said to be on
+  const lo = near ? Math.max(0, near - 1 - 5) : 0, hi = near ? Math.min(lines.length, near + 5) : lines.length;
+  let best = null;
+  for (let a = lo; a < hi && !(best && best.exact); a++) {
+    if (!lw[a]) continue;
+    let acc = ' ', n = 0; const have = new Set();
+    for (let b = a; b < Math.min(hi, a + 40); b++) {
+      if (!lw[b]) continue;
+      acc += lw[b] + ' ';
+      if (acc.includes(qSeq)) { best = { a, b, exact: true, cover: 1 }; break; }
+      for (const x of lw[b].split(' ')) { n++; if (qSet.has(x)) have.add(x); }
+      const cover = have.size / qSet.size;
+      if (cover > 0 && (!best || cover > best.cover + 1e-9 || (Math.abs(cover - best.cover) < 1e-9 && b - a < best.b - best.a))) best = { a, b, exact: false, cover };
+      if (n > qWords.length * 2 + 20 || cover === 1) break;
+    }
+  }
+  // the quotation starts on the last line that still holds all of it
+  if (best && best.exact) while (best.a < best.b && (' ' + lw.slice(best.a + 1, best.b + 1).filter(Boolean).join(' ') + ' ').includes(qSeq)) best.a++;
+  const src = best ? lines.slice(best.a, best.b + 1).join('\n') : '';
+  const srcNums = new Set(numbersIn(src)), have = new Set(wordsIn(flat(src)));
+  const missingNums = qNums.filter((n) => !srcNums.has(n));
+  const missingWords = [...new Set(qWords.filter((x) => !have.has(x)))];
+  const verdict = best && best.exact ? 'exact' : best && best.cover >= 0.8 && !missingNums.length ? 'close' : 'not_supported';
+  const out = { verdict, coverage: best ? Math.round(best.cover * 100) / 100 : 0, lines: best ? [best.a + 1, best.b + 1] : null, source: src };
+  if (missingNums.length) out.numbers_not_in_source = missingNums;
+  if (verdict !== 'exact' && missingWords.length) out.words_not_in_source = missingWords.slice(0, 30);
+  if (near && verdict === 'not_supported') {
+    const all = checkQuote(text, quote, 0);
+    if (all.verdict !== 'not_supported') out.found_elsewhere = { verdict: all.verdict, lines: all.lines };
+  }
+  return out;
+}
+
 // ---------------- tools ----------------
 const S = (props, required = []) => ({ type: 'object', properties: props, required, additionalProperties: false });
 const str = (d) => ({ type: 'string', description: d }), int = (d) => ({ type: 'integer', description: d }), bool = (d) => ({ type: 'boolean', description: d });
@@ -208,6 +257,8 @@ const TOOLS = [
       const i = idx.get(p); const mt = snap.mtimes[i];
       return { path: p, modified: mt ? new Date(mt).toISOString() : null, text };
     } },
+  { name: 'verify_quote', description: 'Check that a quotation or a stated fact really is in a note before citing it. verdict: "exact" (the words are there, ignoring Markdown marks and spacing), "close" (at least 80% of the words and every number are in the matched lines — check the wording) or "not_supported". Numbers in the quotation that are not in the source are listed; always report them rather than citing.', inputSchema: S({ note, quote: str('The text as it will be quoted or stated.'), line: int('1-based line where the quotation is said to be (optional): only lines around it are checked, and a match elsewhere is reported.') }, ['note', 'quote']), annotations: { readOnlyHint: true },
+    run: async ({ note: n, quote, line }) => { const p = noteOf(n); return { path: p, ...checkQuote(await readText(p), String(quote || ''), line > 0 ? line : 0) }; } },
   { name: 'links', description: 'Links of a note: the notes it links to and the notes that link to it (backlinks).', inputSchema: S({ note, limit: int('Maximum per list (default 100).') }, ['note']), annotations: { readOnlyHint: true },
     run: async ({ note: n, limit = 100 }) => { const p = noteOf(n); adjacency(); const i = idx.get(p); const names = (a) => a.map((j) => files[j]).filter(visible); const o = names(outOf[i]), b = names(inOf[i]); return { path: p, outgoing: o.slice(0, limit), outgoing_total: o.length, backlinks: b.slice(0, limit), backlinks_total: b.length }; } },
   { name: 'recent', description: 'Notes edited most recently.', inputSchema: S({ limit: int('How many (default 20).'), folder: str('Only inside this folder.') }), annotations: { readOnlyHint: true },

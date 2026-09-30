@@ -185,7 +185,8 @@ marked.use({
     image(href, title, text) {
       const t = title ? ` title="${esc(title)}"` : '';
       if (!href) return '';
-      if (/^(https?:|data:)/i.test(href)) return `<img src="${esc(href)}" alt="${esc(text)}"${t}>`;
+      if (/^data:/i.test(href) || (/^https?:/i.test(href) && Prefs.get('remoteImages'))) return `<img src="${esc(href)}" alt="${esc(text)}"${t}>`;
+      if (/^https?:/i.test(href)) return webPicture(href, text);
       const p = resolve(href, ctx().from);
       if (!p) return `<span class="muted">[image not found: ${esc(safeDecode(href))}]</span>`;
       return `<img data-vault-src="${esc(p)}" alt="${esc(text)}"${t}>`;
@@ -241,7 +242,21 @@ const slug = (s) => String(s).toLowerCase().replace(/<[^>]+>/g, '').replace(/[^\
 
 // ---------------- showing a note ----------------
 function sanitize(html) {
-  return DOMPurify.sanitize(html, { ADD_ATTR: ['data-path', 'data-sub', 'data-tag', 'data-missing', 'data-vault-src'] });
+  return DOMPurify.sanitize(html, { ADD_ATTR: ['data-path', 'data-sub', 'data-tag', 'data-missing', 'data-vault-src', 'data-web-src'] });
+}
+// a picture from the internet while Settings → Files & links does not load them:
+// a placeholder that loads this one picture when clicked (main.js guardWeb)
+function webPicture(href, text) {
+  let host = href;
+  try { host = new URL(href).host; } catch {}
+  return `<span class="web-pic" data-web-src="${esc(href)}" title="${esc(href)}">Picture from ${esc(host)}${text ? ' — ' + esc(text) : ''} · click to load</span>`;
+}
+async function loadWebPicture(el) {
+  const url = el.dataset.webSrc;
+  await window.api.allowPicture(url);
+  const img = document.createElement('img');
+  img.src = url; img.alt = el.textContent;
+  el.replaceWith(img);
 }
 
 let openSeq = 0;
@@ -448,7 +463,9 @@ async function openDoc(kind) {
 // the address of a picture written in note `from`, or null if it is not one
 function pictureUrl(src, from, wiki) {
   if (!src) return null;
-  if (!wiki && /^(https?:|data:)/i.test(src)) return src;
+  if (!wiki && /^data:/i.test(src)) return src;
+  // pictures from the internet: only when Settings allows it (reading view offers a click to load)
+  if (!wiki && /^https?:/i.test(src)) return Prefs.get('remoteImages') ? src : null;
   const file = wiki ? linkTarget(src).file : src.split('#')[0];
   const p = file ? resolve(file, from) : null;
   return p && IMG_EXT.test(p) ? vaultUrl(p) : null;
@@ -851,8 +868,10 @@ function go(step) {
 
 // one click handler for every link-like element in the app
 document.addEventListener('click', (e) => {
+  const web = e.target.closest('#note .web-pic, #splitNote .web-pic');
+  if (web) { e.preventDefault(); loadWebPicture(web); return; }
   // task checkboxes in reading view write back to the file
-  const pic = e.target.closest('#note img, #splitNote img');
+  const pic =e.target.closest('#note img, #splitNote img');
   if (pic && !e.target.closest('a')) { e.preventDefault(); Viewer.openFromNote(pic); return; }
   const cb = e.target.closest('#note input[type=checkbox][data-task]');
   if (cb) { e.preventDefault(); Ed.toggleTaskAt(+cb.dataset.task); return; }

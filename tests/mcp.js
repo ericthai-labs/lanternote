@@ -30,7 +30,7 @@ function server(extra = [], env = {}) {
   ok('initialize: server info and instructions', init.result.serverInfo.name === 'lanternote' && /vault_info/.test(init.result.instructions) && init.result.capabilities.tools, JSON.stringify(init));
   s.p.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
   const list = (await s.rpc('tools/list', {})).result.tools;
-  ok('tools/list: 13 tools with schemas', list.length === 13 && list.every((t) => t.inputSchema && t.description), list.map((t) => t.name).join());
+  ok('tools/list: 14 tools with schemas', list.length === 14 && list.every((t) => t.inputSchema && t.description), list.map((t) => t.name).join());
   const info = await s.call('vault_info');
   ok('vault_info', info.notes === 7 && info.write === true && info.folders.some((f) => f.name === 'Tasks' && f.notes === 2), JSON.stringify(info));
   const se = await s.call('search', { query: 'vendor' });
@@ -38,6 +38,20 @@ function server(extra = [], env = {}) {
   ok('find_notes by name', JSON.stringify((await s.call('find_notes', { name: 'alp' })).notes) === '["Tasks/Alpha.md"]');
   const rn = await s.call('read_note', { note: 'Alpha', with_line_numbers: true });
   ok('read_note by name, with line numbers', rn.path === 'Tasks/Alpha.md' && /\n6: - \[ \] Write plan/.test(rn.text), rn.text);
+  // checking a quotation before citing it
+  const vq = (quote, line) => s.call('verify_quote', { note: 'Alpha', quote, line });
+  const v1 = await vq('**Write plan**');
+  ok('verify_quote: exact, Markdown marks ignored', v1.verdict === 'exact' && JSON.stringify(v1.lines) === '[6,6]', JSON.stringify(v1));
+  const v2 = await vq('Draft outline. Review outline');
+  ok('verify_quote: exact across list lines', v2.verdict === 'exact' && JSON.stringify(v2.lines) === '[7,8]', JSON.stringify(v2));
+  const date = /\d{4}-\d\d-\d\d/.exec(rd('Tasks/Alpha.md'))[0], wrong = '2099' + date.slice(4);
+  const v3 = await vq('Write plan by ' + wrong);
+  ok('verify_quote: a number not in the source is reported', v3.verdict === 'not_supported' && JSON.stringify(v3.numbers_not_in_source) === JSON.stringify([wrong]) && JSON.stringify(v3.lines) === '[6,6]', JSON.stringify(v3));
+  const v4 = await vq('Write plan ' + date);
+  ok('verify_quote: close when every word and number is there', ['exact', 'close'].includes(v4.verdict) && !v4.numbers_not_in_source, JSON.stringify(v4));
+  const v5 = await vq('Call vendor', 2);
+  ok('verify_quote: not near the given line, found elsewhere', v5.verdict === 'not_supported' && JSON.stringify(v5.found_elsewhere) === '{"verdict":"exact","lines":[11,11]}', JSON.stringify(v5));
+  ok('verify_quote: invented text is not supported', (await vq('The budget was approved by the board')).verdict === 'not_supported');
   const q = await s.call('query', { dql: 'TABLE length(file.tasks) AS "Tasks" FROM "Tasks" SORT file.name ASC' });
   ok('query TABLE as JSON', JSON.stringify(q.rows) === '[["Tasks/Alpha.md",6],["Tasks/Beta.md",2]]', JSON.stringify(q));
   const lt = await s.call('list_tasks', { due_within_days: 7 });
@@ -82,24 +96,24 @@ function server(extra = [], env = {}) {
   const r = server(['--read-only']);
   await r.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
   const rlist = (await r.rpc('tools/list', {})).result.tools.map((t) => t.name);
-  ok('--read-only: no writing tools', rlist.length === 8 && !rlist.includes('create_note'), rlist.join());
+  ok('--read-only: no writing tools', rlist.length === 9 && !rlist.includes('create_note'), rlist.join());
   ok('--read-only: writing is refused', /Unknown tool/.test((await r.call('create_note', { path: 'x.md', content: 'x' })).error || '') && !fs.existsSync(path.join(V, 'x.md')));
   r.close();
   // the app's setting "Let the AI edit notes" off
   fs.writeFileSync(path.join(U, 'settings.json'), JSON.stringify({ prefs: { mcpWrite: false, mcpOnly: 'Journal' } }));
   const pz = server();
   await pz.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
-  ok('app settings: no writing, only the folders chosen', (await pz.rpc('tools/list', {})).result.tools.length === 8 && (await pz.call('vault_info')).notes === 3);
+  ok('app settings: no writing, only the folders chosen', (await pz.rpc('tools/list', {})).result.tools.length === 9 && (await pz.call('vault_info')).notes === 3);
   pz.close();
   // the .mcpb bundle's option overrides the app setting, both ways
   const bOn = server([], { LANTERNOTE_ALLOW_WRITE: 'true' });
   await bOn.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
-  ok('bundle option on: writing tools although the app setting is off', (await bOn.rpc('tools/list', {})).result.tools.length === 13);
+  ok('bundle option on: writing tools although the app setting is off', (await bOn.rpc('tools/list', {})).result.tools.length === 14);
   bOn.close();
   fs.rmSync(path.join(U, 'settings.json'));
   const bOff = server([], { LANTERNOTE_ALLOW_WRITE: 'false' });
   await bOff.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {} });
-  ok('bundle option off (the default): read only without any app settings', (await bOff.rpc('tools/list', {})).result.tools.length === 8);
+  ok('bundle option off (the default): read only without any app settings', (await bOff.rpc('tools/list', {})).result.tools.length === 9);
   bOff.close();
   fs.writeFileSync(path.join(U, 'settings.json'), '{}');
   fs.rmSync(path.join(U, 'settings.json'));

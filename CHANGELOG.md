@@ -2,6 +2,14 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.19.0
+
+### Added
+- **AI connection: `verify_quote`.** Before citing a note, the assistant can check that the quotation is really there: "exact" (the words in order, ignoring Markdown marks, punctuation and line breaks), "close" (most words and every number in the matched lines) or "not supported". Every number in the quotation — figures, dates, part and document numbers — that is not in the source is listed. Given a line number, it also says when the text is found elsewhere in the note.
+
+### Changed
+- **Pictures from the internet are not loaded by default.** A picture whose address starts with http:// or https:// shows as a placeholder; click it to load that one picture. Settings → Files & links → Load pictures from the internet loads them all. Fetching a picture tells its web server that the note was opened, and when; the app now blocks every web request it did not ask for.
+
 ## 1.18.1
 
 ### Changed

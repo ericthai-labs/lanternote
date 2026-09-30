@@ -33,6 +33,7 @@ Màn hình gồm ba cột:
 
 - **Bấm vào một ảnh trong ghi chú** để mở trình xem toàn màn hình; **←** / **→** chuyển qua các ảnh khác trong cùng ghi chú.
 - File ảnh (PNG, JPG, GIF, WebP, SVG, BMP, AVIF, ICO) hiện trong cây thư mục và Quick open với biểu tượng 🖼 — bấm để xem; **←** / **→** chuyển qua các ảnh cùng thư mục. (Tắt được trong Cài đặt → Files & links.)
+- **Ảnh từ Internet** (địa chỉ `http://…`, `https://…` trong ghi chú) **không tự tải**: hiện một ô *"Picture from … · click to load"*, bấm vào mới tải đúng ảnh đó. Lý do: tải ảnh là báo cho máy chủ web biết bạn vừa mở ghi chú, lúc mấy giờ. Muốn luôn tải: **Settings → Files & links → Load pictures from the internet**.
 - **Cuộn chuột** để phóng to/thu nhỏ tại vị trí con trỏ, **kéo** để di chuyển, **bấm đúp** để chuyển giữa vừa màn hình và kích thước thật.
 - Phím: **+** / **−** phóng, **0** vừa màn hình, **1** kích thước thật, **R** xoay, **Esc** đóng.
 - Thanh trên cùng cho biết kích thước (điểm ảnh), dung lượng, và có nút **Show in folder**, **Open with…** (mở bằng ứng dụng mặc định của Windows).
@@ -278,6 +279,7 @@ Trợ lý AI hỗ trợ **MCP** (Claude Code, Claude Desktop…) có thể làm 
 
 - AI làm việc với **thư mục mở gần nhất** trong Lanternote.
 - **Let the AI edit notes**: tắt đi thì AI chỉ đọc. **Folders the AI may use**: giới hạn thư mục AI được thấy (ví dụ `03-Du-An, 02-Bao-Cao`).
+- AI có công cụ **verify_quote**: trước khi trích dẫn, kiểm câu trích và **từng con số** có đúng trong ghi chú không (ví dụ số liệu, ngày, số hiệu). Có thể dặn AI: *"kiểm lại mọi trích dẫn bằng verify_quote"*.
 - Mỗi lần AI sửa, **bản cũ luôn được giữ** — mở ghi chú, bấm **🕘 Versions** để lấy lại. Danh sách thay đổi nằm ở `mcp.log` (Settings → Advanced → Open folder).
 - Khi AI đọc một ghi chú, nội dung đó được gửi tới nhà cung cấp AI. Chỉ bật với thư mục bạn chấp nhận chia sẻ.
 - Dùng bản giải nén (thư mục `win-unpacked` hoặc file `.zip`), không dùng bản portable `.exe` cho kết nối AI.

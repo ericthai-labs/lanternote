@@ -109,7 +109,7 @@ Lay out notes, text and links on an infinite board. Canvases use the open [JSON 
 <td valign="top">
 
 ### Connect an AI assistant
-Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run queries, list tasks and — only if you allow it — write. Limit it to chosen folders; every change is logged and reversible. For Claude Desktop, just double-click `lanternote-<version>.mcpb` from the release.
+Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run queries, list tasks, check a quotation and its numbers against the note before citing it (`verify_quote`) and — only if you allow it — write. Limit it to chosen folders; every change is logged and reversible. For Claude Desktop, just double-click `lanternote-<version>.mcpb` from the release.
 
 <img src="docs/images/ai-connection.jpg" alt="AI connection settings">
 </td>
@@ -197,7 +197,7 @@ Press **F1** in the app for the built-in guide, or read the illustrated [user gu
 
 ## Privacy
 
-Lanternote reads and writes only the folder you open and its own settings folder. It has no account, no telemetry and no update check; all libraries are bundled, so it runs without a network connection.
+Lanternote reads and writes only the folder you open and its own settings folder. It has no account, no telemetry and no update check; all libraries are bundled, so it runs without a network connection. Pictures linked from the internet (`![](https://…)`) are not fetched unless you click one or turn on Settings → Files & links → Load pictures from the internet, since fetching them tells the web server when a note is opened.
 
 The only exception is one you turn on yourself: when you connect an AI assistant, the notes it reads are sent to that assistant's provider. You can make the connection read-only and limit it to chosen folders.
 

@@ -225,6 +225,7 @@ An AI assistant that speaks **MCP** — Claude Code, Claude Desktop and others �
 |---|---|
 | `vault_info`, `find_notes`, `search`, `recent` | learn the folder, find notes by name or text |
 | `read_note`, `links` | read a note or one section; backlinks and outgoing links |
+| `verify_quote` | check that a quotation — and every number in it — really is in a note before citing it |
 | `query`, `list_tasks` | run TABLE / LIST / TASK / CALENDAR queries; tasks by due date |
 | `create_note`, `append_to_note`, `replace_in_note` | write notes (only when allowed) |
 | `set_task`, `set_property` | tick tasks, set front-matter properties (only when allowed) |

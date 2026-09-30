@@ -6,7 +6,7 @@ Always run them on **throw-away folders**, never on real notes — they create, 
 ## Run everything
 
 ```bash
-node tests/mcp.js        # AI connection (MCP), 35 checks, no window needed
+node tests/mcp.js        # AI connection (MCP), 41 checks, no window needed
 node tests/index-cache.js # index cache survives closing during a slow open, 3 checks, no window needed
 node tests/run-all.js    # every UI scenario below, on fresh folders in the temp directory
 ```
@@ -22,6 +22,7 @@ On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs bot
 | `settings.js` (7 steps) | as above plus `Archive/Old.md` | `TV=<folder> node scripts/drive.js <folder> tests/settings.js` |
 | `guide-about.js` (6 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/guide-about.js` |
 | `image-viewer.js` (10 steps) | `Home.md` embedding `![[sunset.png\|400]]` and `![[logo.svg]]`; `pics/` with sunset.png, small.png, logo.svg | `node scripts/drive.js <folder> tests/image-viewer.js` |
+| `web-pictures.js` (6 steps) | as `editing.js`; the scenario starts its own small web server and counts the requests | `TV=<folder> node scripts/drive.js <folder> tests/web-pictures.js` |
 | `changelog.js` (4 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/changelog.js` |
 | `undo-redo.js` (5 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/undo-redo.js` |
 | `tabs-split.js` (19 steps) | as `editing.js` | `TV=<folder> node scripts/drive.js <folder> tests/tabs-split.js` |
@@ -32,7 +33,7 @@ On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs bot
 | `tasks-calendar.js` (19 steps) | made by `node tests/make-task-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/tasks-calendar.js` |
 | `command-center.js` (42 steps) | made by `node tests/make-cc-vault.js <empty folder>` — the folder must be named `lanternote-cc-vault` | `TV=<folder> node scripts/drive.js <folder> tests/command-center.js` |
 | `indexer-recovery.js` (4 steps) | the folder from `make-dv-vault.js` | `LANTERNOTE_TEST=1 TV=<folder> node scripts/drive.js <folder> tests/indexer-recovery.js` |
-| `mcp.js` (35 steps, no `drive.js`) | makes its own temporary folder and settings | `node tests/mcp.js` · packaged: `MCP_CMD='["<win-unpacked>/Lanternote.exe","<win-unpacked>/resources/app.asar/mcp/lanternote-mcp.js"]' MCP_ENV='{"ELECTRON_RUN_AS_NODE":"1"}' node tests/mcp.js` |
+| `mcp.js` (41 steps, no `drive.js`) | makes its own temporary folder and settings | `node tests/mcp.js` · packaged: `MCP_CMD='["<win-unpacked>/Lanternote.exe","<win-unpacked>/resources/app.asar/mcp/lanternote-mcp.js"]' MCP_ENV='{"ELECTRON_RUN_AS_NODE":"1"}' node tests/mcp.js` |
 | `index-cache.js` (3 steps, no `drive.js`) | makes its own temporary folder (20,000 notes) and cache | `node tests/index-cache.js` |
 | `map-weak-pc.js` | a large folder (read only) | `WEAK=1 node scripts/drive.js <folder> tests/map-weak-pc.js` |
 
