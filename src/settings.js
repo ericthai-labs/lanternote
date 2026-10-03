@@ -145,11 +145,24 @@ const Prefs = (() => {
       g('setBody').innerHTML = `<h3>Advanced</h3>
         <div class="set-row"><div class="set-label"><div>Settings, caches and recovery copies</div><div class="muted small">Stored on this PC only, outside your notes folder.</div></div><div class="set-input"><button class="small-btn" data-open="userData">Open folder</button></div></div>
         <div class="set-row"><div class="set-label"><div>Problem log</div><div class="muted small">lanternote.log in the settings folder — send it along when reporting a problem.</div></div><div class="set-input"><button class="small-btn" data-open="userData">Open folder</button></div></div>
+        ${await mdAppRow()}
         <div class="set-row"><div class="set-label"><div>Reset all settings</div><div class="muted small">Your notes are not touched.</div></div><div class="set-input"><button class="small-btn" data-resetall>Reset</button></div></div>`;
       return;
     }
     const fields = SCHEMA.find(([s]) => s === section)[1];
     g('setBody').innerHTML = `<h3>${esc(section)}</h3>` + fields.map(field).join('') + (section === 'AI connection' ? await mcpHelp() : '');
+  }
+  // Windows: open .md files with Lanternote (double-click in Explorer)
+  async function mdAppRow() {
+    const m = await window.api.mdApp();
+    if (!m.windows) return '';
+    const help = !m.supported ? 'Available in the built app (portable .exe, .zip or win-unpacked), not when run from source.'
+      : m.registered ? 'Registered. If .md files still open in another app, pick Lanternote in Settings → Default apps (button opens it).'
+      : 'Registers Lanternote for .md and .markdown, then opens Windows Default apps — pick Lanternote there once. Windows does not let an app make itself the default.';
+    const port = m.supported && m.portable ? ' The portable .exe unpacks itself on every start; the .zip unpacked to a fixed folder opens faster.' : '';
+    return `<div class="set-row"><div class="set-label"><div>Open Markdown files with Lanternote</div><div class="muted small">${esc(help + port)}</div></div><div class="set-input">${m.supported
+      ? `<button class="small-btn" data-mdapp="on">${m.registered ? 'Open Default apps' : 'Set as Markdown app'}</button>${m.registered ? '<button class="small-btn" data-mdapp="off">Remove</button>' : ''}`
+      : ''}</div></div>`;
   }
   // how to connect an AI assistant: the commands for this copy of the app
   let mcp = null;
@@ -191,6 +204,12 @@ const Prefs = (() => {
     const r = e.target.closest('[data-reset]');
     if (r) { delete values[r.dataset.reset]; window.api.setSetting('prefs', values); apply(r.dataset.reset); draw(); return; }
     if (e.target.closest('[data-open]')) { window.api.openUserData(); return; }
+    const md = e.target.closest('[data-mdapp]');
+    if (md) {
+      try { await window.api.setMdApp(md.dataset.mdapp === 'on'); toast(md.dataset.mdapp === 'on' ? 'Registered — choose Lanternote for .md in Default apps' : 'Lanternote no longer offered for .md files'); }
+      catch (err) { toast('Could not change the Markdown app: ' + err.message); }
+      draw(); return;
+    }
     const mc = e.target.closest('[data-mcp]');
     if (mc && mcp) { await window.api.copy(mcp[mc.dataset.mcp]); mc.textContent = 'Copied ✓'; setTimeout(() => { mc.textContent = mc.dataset.mcp === 'code' ? 'Copy command' : 'Copy config'; }, 1500); return; }
     if (e.target.closest('[data-guide]')) { g('settings').hidden = true; openGuide(); return; }

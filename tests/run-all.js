@@ -46,6 +46,7 @@ const RUNS = [ // [scenario, folder, needs TV=<folder>, extra env]
   ['kanban.js', () => made('kb', 'make-kanban-vault.js'), true],
   ['tasks-calendar.js', () => made('tc', 'make-task-vault.js'), true],
   ['command-center.js', () => made('lanternote-cc-vault', 'make-cc-vault.js'), true],
+  ['open-file.js', () => basicVault('of'), true, { LANTERNOTE_TEST: '1' }],
   ['indexer-recovery.js', () => made('ir', 'make-dv-vault.js'), true, { LANTERNOTE_TEST: '1' }],
 ];
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null;

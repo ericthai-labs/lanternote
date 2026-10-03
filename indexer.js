@@ -76,9 +76,9 @@ const cacheFile = (root) => path.join(cacheDir, crypto.createHash('sha1').update
 function loadCache(root) {
   try {
     const c = v8.deserialize(fs.readFileSync(cacheFile(root)));
-    if (c.version === CACHE_VERSION && c.root === root) return { meta: new Map(c.entries), snap: c.snap };
+    if (c.version === CACHE_VERSION && c.root === root) return { meta: new Map(c.entries), snap: c.snap, exclude: c.exclude || '' };
   } catch { /* no cache yet */ }
-  return { meta: new Map(), snap: null };
+  return { meta: new Map(), snap: null, exclude: '' };
 }
 const searchFile = (root) => cacheFile(root).replace(/\.bin$/, '.search.bin');
 const SEARCH_VERSION = 1;
@@ -116,8 +116,9 @@ function saveCache(soon) {
       // early): keep the old entries not checked yet, or the next open would
       // have to read them all again. They are checked by mtime and size then.
       if (S.prev) for (const [p, m] of S.prev) if (!S.meta.has(p)) entries.push([p, m]);
+      if (S.stray) for (const [p, m] of S.stray) if (!S.meta.has(p)) entries.push([p, m]);
       const tmp = cacheFile(S.root) + '.tmp';
-      fs.writeFileSync(tmp, v8.serialize({ version: CACHE_VERSION, root: S.root, entries, snap: S.snap }));
+      fs.writeFileSync(tmp, v8.serialize({ version: CACHE_VERSION, root: S.root, entries, snap: S.snap, exclude: EXCLUDE.join(',') }));
       fs.renameSync(tmp, cacheFile(S.root));
     } catch (e) { console.warn('Could not save index cache:', e.message); }
   };
@@ -145,7 +146,11 @@ async function readNote(p) {
   keepText(p, text);
 }
 
-async function open(root) {
+// instant: show the vault as it was saved last time without walking the folder
+// first; the walk and the check for edits run afterwards and reach the window
+// as an ordinary update. `ensure` is a file that must be in the result (opened
+// from Explorer, possibly created after the cache was saved).
+async function open(root, { instant = false, ensure = null } = {}) {
   const t0 = now();
   if (S && S.root !== root) saveCache();
   if (S && S.sidx && S.root !== root) saveSearch();
@@ -153,11 +158,30 @@ async function open(root) {
   const gen = S.gen;
   S.sidx = loadSearch(root);
   if (!S.sidx) { S.builder = new SI.Builder(); S.added = new Set(); S.later = new Set(); }
+  const cache = loadCache(root);
+  const saved = cache.snap;
+  if (instant && saved && cache.exclude === EXCLUDE.join(',') && saved.files.every((f) => !isMd(f) || cache.meta.has(f))) {
+    S.files = saved.files.slice();
+    S.meta = cache.meta;
+    // entries saved for files not in the saved list (an early save during a
+    // slow open): set aside, reused by reconcile() if the files are still there
+    const listed = new Set(S.files);
+    S.stray = new Map();
+    for (const [p, m] of S.meta) if (!listed.has(p)) S.stray.set(p, m);
+    for (const p of S.stray.keys()) S.meta.delete(p);
+    resolveAll();
+    S.snap = saved;
+    S.timing = { cached: true, instant: true, files: S.files.length, notes: S.meta.size };
+    saved.timing = S.timing;
+    let snap = saved;
+    if (ensure && !S.index.has(ensure)) { const r = await update([ensure]); if (r && r.snapshot) snap = r.snapshot; }
+    reconcile(gen).then(() => fillSearch(gen)).catch(logError);
+    return snap;
+  }
   progress('scan', 0, 0);
   S.files = await walk(root);
   const t1 = now();
   const md = S.files.filter(isMd);
-  const cache = loadCache(root);
 
   // Fast path: same file list as last time → show the cached graph at once,
   // then look for edits in the background.
@@ -234,6 +258,34 @@ async function verify(gen, md) {
     const res = await update(changed);
     if (res && S.gen === gen) parentPort.postMessage({ type: 'changed', result: res });
   }
+}
+
+// After an instant open: walk the folder, take in the files added or removed
+// while the app was closed, then check every note for edits (verify).
+async function reconcile(gen) {
+  const t0 = now();
+  const files = await walk(S.root);
+  if (!S || S.gen !== gen) return;
+  const have = new Set(S.files), there = new Set(files);
+  const added = files.filter((f) => !have.has(f));
+  const gone = S.files.filter((f) => !there.has(f));
+  S.timing.walk = now() - t0;
+  let res = null;
+  if (gone.length) {
+    const g = new Set(gone);
+    S.files = S.files.filter((f) => !g.has(f));
+    for (const f of gone) { S.meta.delete(f); if (S.sidx) S.sidx.update(f, null); else if (S.added) S.added.delete(f); }
+    resolveAll();
+  }
+  if (S.stray) { for (const f of added) { const m = S.stray.get(f); if (m) S.meta.set(f, m); } S.stray = null; }
+  if (added.length) res = await update(added); // unchanged notes keep their saved parse
+  if (!S || S.gen !== gen) return;
+  if (gone.length) {
+    if (res && res.snapshot) res.changed = res.changed.concat(gone);
+    else { res = { snapshot: snapshot(), changed: gone.concat(res ? res.changed : []) }; saveCache(10000); }
+  }
+  if (res) parentPort.postMessage({ type: 'changed', result: res });
+  await verify(gen, S.files.filter(isMd));
 }
 
 function startSearchRebuild() { S.sidx = null; S.builder = new SI.Builder(); S.added = new Set(); S.later = new Set(); }
@@ -601,7 +653,7 @@ async function snippets(target, sources) {
 
 // ---------------- message loop ----------------
 const handlers = {
-  open: ({ root, exclude }) => { EXCLUDE = exclude || []; return open(root); },
+  open: ({ root, exclude, instant, ensure }) => { EXCLUDE = exclude || []; return open(root, { instant, ensure }); },
   update: ({ changed }) => update(changed),
   search: ({ q, limit }) => (S ? search(q, limit || 300) : { total: 0, hits: [], partial: true, indexed: 0, notes: 0 }),
   snippets: ({ target, sources }) => (S ? snippets(target, sources) : {}),

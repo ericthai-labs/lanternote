@@ -223,20 +223,59 @@ function watchTree(root, onChange, skipped) {
   return { close: () => { for (const w of watchers.values()) { try { w.close(); } catch {} } watchers.clear(); } };
 }
 
-async function openVault(dir, openFile) {
+// The saved index is shown at once (instant); the folder is walked and checked
+// for edits in the background. A loose file (outside every known vault) opens
+// its own folder without becoming the folder reopened at the next start.
+async function openVault(dir, openFile, { loose = false } = {}) {
   const root = path.resolve(dir);
   const st = await fs.promises.stat(root);
   if (!st.isDirectory()) throw new Error('Not a folder: ' + root);
   vaultRoot = root;
-  const data = await ask('open', { root, exclude: excluded() });
+  const ensure = openFile ? toPosix(path.relative(root, openFile)) : null;
+  const data = await ask('open', { root, exclude: excluded(), instant: true, ensure });
   watchVault(root);
-  const s = readSettings();
-  s.lastVault = root;
-  s.recent = [root, ...(s.recent || []).filter((r) => r !== root)].slice(0, 8);
-  writeSettings(s);
+  if (!loose) {
+    const s = readSettings();
+    s.lastVault = root;
+    s.recent = [root, ...(s.recent || []).filter((r) => r !== root)].slice(0, 8);
+    writeSettings(s);
+  }
   if (win) win.setTitle('Lanternote — ' + data.name);
-  if (openFile) data.open = toPosix(path.relative(root, openFile));
+  if (ensure) data.open = ensure;
   return data;
+}
+
+// A Markdown file opened from Explorer belongs to the deepest known vault (the
+// open one, the last one, the recent ones) that contains it, so its saved index
+// is used instead of indexing the file's own folder from scratch.
+const samePath = (a, b) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b);
+function vaultFor(file) {
+  const s = readSettings();
+  let best = null;
+  for (const r of [vaultRoot, s.lastVault, ...(s.recent || [])]) {
+    if (!r) continue;
+    const rel = path.relative(r, file);
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) continue;
+    // a file the index leaves out (hidden or ignored folder) cannot be shown from that vault
+    const segs = toPosix(rel).split('/');
+    if (segs.slice(0, -1).some((x) => x.startsWith('.') || SKIP_DIRS.has(x))) continue;
+    const low = toPosix(rel).toLowerCase();
+    if (excluded().some((x) => low === x || low.startsWith(x + '/'))) continue;
+    if (!best || r.length > best.length) best = r;
+  }
+  return best;
+}
+async function openPending(f) {
+  const root = vaultFor(f);
+  if (root && vaultRoot && samePath(root, vaultRoot)) {
+    // already open: just show the note (picked up first if it is new)
+    const rel = toPosix(path.relative(vaultRoot, f));
+    let change = null;
+    try { change = await ask('update', { changed: [rel] }); } catch { /* shown anyway if indexed */ }
+    return { same: true, open: rel, change };
+  }
+  if (root) return openVault(root, f);
+  return openVault(path.dirname(f), f, { loose: true });
 }
 
 // Resolve a vault-relative path and refuse anything that escapes the vault.
@@ -355,6 +394,59 @@ ipcMain.handle('app:mcp', async () => ({
   portable: !!process.env.PORTABLE_EXECUTABLE_FILE,
   log: path.join(app.getPath('userData'), 'mcp.log'),
 }));
+// ---------- Markdown app (Windows) ----------
+// Registers this exe for .md / .markdown under HKCU (no admin rights): a ProgID,
+// "Open with" entries and Default-apps capabilities. Windows does not let a
+// program make itself the default; the person picks it once in Settings →
+// Default apps, which is opened afterwards.
+const { execFile } = require('child_process');
+const appExe = () => process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+const reg = (args) => new Promise((res, rej) => execFile('reg', args, { windowsHide: true }, (e, _o, err) => (e ? rej(new Error(String(err || e.message).trim())) : res())));
+const regSet = (key, name, value) => reg(['add', key, ...(name == null ? ['/ve'] : ['/v', name]), '/t', 'REG_SZ', '/d', value, '/f']);
+const MD_PROGID = 'Lanternote.md';
+async function registerMarkdown() {
+  const exe = appExe();
+  const C = 'HKCU\\Software\\Classes';
+  await regSet(`${C}\\${MD_PROGID}`, null, 'Markdown note');
+  await regSet(`${C}\\${MD_PROGID}`, 'FriendlyTypeName', 'Markdown note');
+  await regSet(`${C}\\${MD_PROGID}\\DefaultIcon`, null, `"${exe}",0`);
+  await regSet(`${C}\\${MD_PROGID}\\shell\\open`, 'FriendlyAppName', 'Lanternote');
+  await regSet(`${C}\\${MD_PROGID}\\shell\\open\\command`, null, `"${exe}" "%1"`);
+  const cap = 'HKCU\\Software\\Lanternote\\Capabilities';
+  await regSet(cap, 'ApplicationName', 'Lanternote');
+  await regSet(cap, 'ApplicationDescription', 'Markdown notes with links, graph and editing');
+  for (const ext of ['.md', '.markdown']) {
+    await regSet(`${C}\\${ext}\\OpenWithProgids`, MD_PROGID, '');
+    await regSet(`${cap}\\FileAssociations`, ext, MD_PROGID);
+  }
+  await regSet('HKCU\\Software\\RegisteredApplications', 'Lanternote', 'Software\\Lanternote\\Capabilities');
+  setSetting('mdApp', exe);
+}
+async function unregisterMarkdown() {
+  const C = 'HKCU\\Software\\Classes';
+  const del = (args) => reg(['delete', ...args, '/f']).catch(() => {});
+  for (const ext of ['.md', '.markdown']) await del([`${C}\\${ext}\\OpenWithProgids`, '/v', MD_PROGID]);
+  await del([`${C}\\${MD_PROGID}`]);
+  await del(['HKCU\\Software\\RegisteredApplications', '/v', 'Lanternote']);
+  await del(['HKCU\\Software\\Lanternote']);
+  setSetting('mdApp', null);
+}
+ipcMain.handle('app:mdApp', async () => ({
+  supported: process.platform === 'win32' && app.isPackaged,
+  windows: process.platform === 'win32',
+  registered: !!readSettings().mdApp,
+  portable: !!process.env.PORTABLE_EXECUTABLE_FILE,
+  exe: appExe(),
+}));
+ipcMain.handle('app:mdAppSet', async (_e, on) => {
+  if (process.platform !== 'win32' || !app.isPackaged) throw new Error('Only the installed Windows app can register itself');
+  if (!on) { await unregisterMarkdown(); return false; }
+  await registerMarkdown();
+  // Windows 11 opens Lanternote's own page; older builds open the Default apps list
+  await shell.openExternal('ms-settings:defaultapps?registeredAppUser=Lanternote').catch(() => shell.openExternal('ms-settings:defaultapps'));
+  return true;
+});
+
 ipcMain.handle('app:copy', async (_e, text) => { clipboard.writeText(String(text)); return true; });
 // folders the user chose to ignore (settings → Files & links)
 const excluded = () => String(prefs().exclude || '').split(',').map((s) => s.trim().replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase()).filter(Boolean);
@@ -387,12 +479,14 @@ ipcMain.handle('file:attach', async (_e, dirRel, name, bytes) => {
 ipcMain.handle('index:search', async (_e, q, limit) => ask('search', { q, limit }));
 // test hook (only with LANTERNOTE_TEST=1): end the indexer as a crash would
 if (process.env.LANTERNOTE_TEST) ipcMain.handle('test:crash-indexer', async () => { if (indexer) await indexer.terminate(); });
+// test hook: a file opened from Explorer while the app runs (as second-instance does)
+if (process.env.LANTERNOTE_TEST) ipcMain.handle('test:open-file', async (_e, f) => { pendingOpen = f; win.webContents.send('menu', 'pending-open'); });
 ipcMain.handle('index:dv', async (_e, q, origin) => ask('dv', { q, origin }));
 ipcMain.handle('index:snippets', async (_e, target, sources) => ask('snippets', { target, sources }));
 ipcMain.handle('vault:last', async () => {
   if (pendingOpen) {
     const f = pendingOpen; pendingOpen = null;
-    return openVault(path.dirname(f), f);
+    return openPending(f);
   }
   const last = readSettings().lastVault;
   if (last && fs.existsSync(last)) return openVault(last);
@@ -554,6 +648,10 @@ if (!app.requestSingleInstanceLock()) {
     });
     buildMenu();
     createWindow();
+    const mdApp = readSettings().mdApp;
+    if (mdApp && process.platform === 'win32' && app.isPackaged && mdApp !== appExe()) {
+      registerMarkdown().catch((e) => logLine('Could not update the Markdown app registration: ' + e.message));
+    }
   });
   app.on('window-all-closed', () => app.quit());
   // let the indexer write its cache before the process goes away

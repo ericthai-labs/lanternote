@@ -945,7 +945,11 @@ window.api.onMenu((cmd) => {
     search: () => { setTab('search'); showLeft(); }, back: () => go(-1), forward: () => go(1),
     'toggle-left': () => toggleSide('left'), 'toggle-right': () => toggleSide('right'),
     theme: () => setTheme(isDark() ? 'light' : 'dark'),
-    'pending-open': async () => loadVault(await window.api.lastVault()),
+    'pending-open': async () => {
+      // a Markdown file opened from Explorer: in the open vault it is just shown
+      const d = await window.api.lastVault();
+      if (d && d.same) { if (d.change) applyChange(d.change); openNote(d.open); } else loadVault(d);
+    },
     'command-center': () => toggleCC(), graph: () => toggleGraph('global'), 'graph-local': () => toggleGraph('local'),
     guide: openGuide, changelog: () => openDoc('changelog'),
     'insert-template': () => Templates.insert(), 'new-from-template': () => Templates.newFromTemplate(),

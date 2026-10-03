@@ -1,7 +1,8 @@
 // Copyright © 2026 Eric Thai - Thai Ba Hoa. Licensed under the Apache License 2.0 — see LICENSE.txt.
 // Index cache test: closing the app while a slow open is still checking notes
 // must not throw away the cached notes it had not checked yet (otherwise every
-// later open reads the whole folder again). Runs indexer.js directly on a
+// later open reads the whole folder again). An instant open shows the saved
+// index first and brings in the edits made while the app was closed. Runs indexer.js directly on a
 // TEMPORARY folder and cache, no window needed.
 //   node tests/index-cache.js
 const { Worker } = require('worker_threads');
@@ -20,7 +21,7 @@ function start(onProgress) {
   const w = new Worker(path.join(__dirname, '..', 'indexer.js'), { workerData: { cacheDir: C } });
   const waits = new Map(); let seq = 0;
   w.on('message', (m) => {
-    if (m.type === 'progress') { if (onProgress) onProgress(m); return; }
+    if (m.type) { if (onProgress) onProgress(m); return; }
     const x = waits.get(m.id); if (!x) return; waits.delete(m.id);
     m.error ? x.rej(new Error(m.error)) : x.res(m.result);
   });
@@ -59,6 +60,46 @@ const cached = () => {
   const snap = await d.ask('open', { root: V }); await d.ask('flush'); await d.w.terminate();
   c = cached();
   check(c.entries === N + 1 && c.snap, 'a full open afterwards leaves a complete cache', `${JSON.stringify(c)} reread ${snap.timing.reread}`);
+
+  // 4. instant open: the saved index comes back without walking the folder
+  let e = start();
+  let t0 = Date.now();
+  let s4 = await e.ask('open', { root: V, instant: true });
+  const ms = Date.now() - t0;
+  await e.ask('flush'); await e.w.terminate();
+  check(s4.timing.instant && s4.files.length === N + 1, 'instant open shows the saved index', `${ms} ms, ${s4.files.length} files`);
+
+  // 5. edits made while the app was closed reach the window as updates
+  fs.writeFileSync(path.join(V, 'Added.md'), '# Added\n\n[[New]]\n');
+  fs.rmSync(path.join(V, 'd0', 'n0.md'));
+  fs.writeFileSync(path.join(V, 'd1', 'n1.md'), '# Changed\n\n[[Added]]\n');
+  const later = new Date(Date.now() + 120000); fs.utimesSync(path.join(V, 'd1', 'n1.md'), later, later);
+  let last = null, checked = false;
+  e = start((m) => { if (m.type === 'changed' && m.result.snapshot) last = m.result.snapshot; if (m.type === 'progress' && m.phase === 'check' && m.done === m.total) checked = true; });
+  s4 = await e.ask('open', { root: V, instant: true });
+  const before = s4.files.includes('d0/n0.md') && !s4.files.includes('Added.md');
+  for (let i = 0; i < 400 && !(checked && last && last.files.includes('Added.md')); i++) await new Promise((r) => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 300)); // the update after verify
+  const fi = (sn, f) => sn.files.indexOf(f);
+  const linked = last && (() => { const a = fi(last, 'd1/n1.md'), b = fi(last, 'Added.md'); for (let k = 0; k < last.edges.length; k += 2) if (last.edges[k] === a && last.edges[k + 1] === b) return true; return false; })();
+  check(before && last && last.files.includes('Added.md') && !last.files.includes('d0/n0.md') && linked,
+    'added, removed and edited notes arrive after an instant open', `before ${before}, after ${last ? last.files.length : 'none'}, edit seen ${linked}`);
+  await e.ask('flush'); await e.w.terminate();
+  c = cached();
+  check(c.entries === N + 1 && c.snap, 'the cache is complete again', JSON.stringify(c));
+
+  // 6. a file opened from Explorer that the cache does not know yet is in the first answer
+  fs.writeFileSync(path.join(V, 'Fresh.md'), '# Fresh\n');
+  e = start();
+  s4 = await e.ask('open', { root: V, instant: true, ensure: 'Fresh.md' });
+  check(s4.files.includes('Fresh.md'), 'the opened file is there at once', '');
+  await e.ask('flush'); await e.w.terminate();
+
+  // 7. other ignored folders → a full open, not the saved index
+  e = start();
+  s4 = await e.ask('open', { root: V, instant: true, exclude: ['d2'] });
+  check(!s4.timing.instant && !s4.files.some((f) => f.startsWith('d2/')), 'changing the ignored folders skips the saved index', '');
+  await e.w.terminate();
 
   fs.rmSync(V, { recursive: true, force: true }); fs.rmSync(C, { recursive: true, force: true });
   console.log(failed ? `${failed} failed` : 'all passed');

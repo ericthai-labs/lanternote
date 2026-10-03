@@ -2,6 +2,15 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.20.0
+
+### Added
+- **Open Markdown files with Lanternote (Windows).** Settings → Advanced → Set as Markdown app registers Lanternote for `.md` and `.markdown` for your Windows account (no admin rights) and opens Default apps, where you pick Lanternote once — Windows does not let an app make itself the default. When the app is moved or updated, opening the new copy once updates the registration. Remove takes it out again.
+
+### Changed
+- **A folder opens at once from its saved index.** Lanternote no longer walks the whole folder before showing it: the index saved last time appears immediately, and notes added, removed or edited while the app was closed are picked up in the background. A folder is read from scratch only the first time, or after changing the folders to ignore.
+- **A note opened from Explorer opens in its vault.** Double-clicking a note inside a folder you have opened before (the open one, the last one or a recent one) shows it there, from the saved index, instead of indexing the note's own subfolder from scratch; if Lanternote is already running it just switches to the note. A loose file elsewhere still opens its own folder, but no longer replaces the folder reopened at the next start.
+
 ## 1.19.0
 
 ### Added

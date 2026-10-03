@@ -9,7 +9,14 @@ Lanternote đọc và sửa một **thư mục ghi chú Markdown** (`.md`) ngay 
 
 1. Chạy `Lanternote.exe` (bản portable không cần cài đặt, không cần quyền quản trị).
 2. Bấm **Open a folder** và chọn thư mục ghi chú. Lần sau ứng dụng tự mở lại thư mục và ghi chú cuối cùng.
-3. Lần đầu mở một thư mục lớn, ứng dụng đọc toàn bộ ghi chú (thư mục ~190.000 ghi chú mất khoảng 15–20 giây). Những lần sau chỉ mất 1–2 giây vì đã có bộ nhớ đệm.
+3. Lần đầu mở một thư mục lớn, ứng dụng đọc toàn bộ ghi chú (thư mục ~190.000 ghi chú mất khoảng 15–20 giây). Những lần sau thư mục hiện ngay từ bộ nhớ đệm; ứng dụng kiểm tra ở nền xem có ghi chú nào được thêm, xoá hay sửa trong lúc tắt (dòng trạng thái ghi *Checking for changes*) rồi tự cập nhật. Chỉ khi mở một thư mục mới, hoặc đổi **thư mục bỏ qua**, mới phải đọc lại.
+
+### Mở file .md bằng Lanternote (bấm đúp trong Explorer)
+
+1. **Ctrl+,** → **Advanced** → **Set as Markdown app**. Lanternote đăng ký mình cho `.md` và `.markdown` (chỉ cho tài khoản Windows của bạn, không cần quyền quản trị), rồi mở trang *Default apps* của Windows.
+2. Ở trang đó chọn **Lanternote** cho `.md` (một lần). Windows không cho ứng dụng tự giành quyền mặc định, nên bước này phải do bạn bấm. Cách khác: chuột phải một file `.md` → *Open with* → *Choose another app* → Lanternote → *Always*.
+3. Từ đó bấm đúp một ghi chú: nếu nó nằm trong thư mục đã từng mở (thư mục đang mở, thư mục mở lần trước, hoặc trong *Recent folders*), Lanternote mở đúng thư mục đó từ bộ nhớ đệm và nhảy tới ghi chú — không đọc lại từ đầu. Ứng dụng đang chạy thì chỉ chuyển sang ghi chú đó. File lẻ ở chỗ khác mở thư mục chứa nó, nhưng lần khởi động sau vẫn quay về thư mục quen thuộc.
+4. Bản portable `.exe` tự giải nén mỗi lần chạy nên mở chậm hơn; giải nén bản `.zip` vào một thư mục cố định (ví dụ `C:\Apps\Lanternote`) rồi đăng ký từ bản đó sẽ nhanh hơn. Đổi sang bản mới ở chỗ khác: mở bản mới một lần là đăng ký tự cập nhật. Bỏ đăng ký: nút **Remove** cùng chỗ.
 
 Màn hình gồm ba cột:
 
@@ -302,7 +309,7 @@ Trợ lý AI hỗ trợ **MCP** (Claude Code, Claude Desktop…) có thể làm 
 | AI connection | Cho AI sửa ghi chú hay chỉ đọc, thư mục AI được dùng, lệnh kết nối Claude |
 | Graph | Engine mặc định, ngưỡng hub links |
 | File recovery | Chu kỳ giữ bản sao, số ngày giữ (0 phút = tắt) |
-| Advanced | Mở thư mục chứa cài đặt, đặt lại mọi cài đặt |
+| Advanced | Mở thư mục chứa cài đặt, **đặt Lanternote làm app mở file .md** (Windows), đặt lại mọi cài đặt |
 
 **Thư mục bỏ qua** (ví dụ `Archive, 99-Templates`): không đọc, không tìm, không vẽ. Có hiệu lực sau khi nạp lại thư mục (**Ctrl+R**).
 
