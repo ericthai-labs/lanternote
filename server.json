@@ -8,12 +8,12 @@
     "source": "github"
   },
   "websiteUrl": "https://ericthai-labs.github.io/lanternote/",
-  "version": "1.18.0",
+  "version": "1.22.0",
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/ericthai-labs/lanternote/releases/download/v1.18.0/lanternote-1.18.0.mcpb",
-      "fileSha256": "0f1cbaa179aaceebcddfc252608ac8e0a928a0b59e34d0d3640de2e6309ec06b",
+      "identifier": "https://github.com/ericthai-labs/lanternote/releases/download/v1.22.0/lanternote-1.22.0.mcpb",
+      "fileSha256": "acbc3cdf6e99430930a8c28c4afe8b1bc13ff7b90ad54076d86c4d2e91f4e4dc",
       "transport": {
         "type": "stdio"
       }

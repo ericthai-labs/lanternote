@@ -5,7 +5,7 @@
 const { app, BrowserWindow, dialog, ipcMain, shell, protocol, net, Menu, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { pathToFileURL } = require('url');
+const { pathToFileURL, fileURLToPath } = require('url');
 const { Worker } = require('worker_threads');
 const crypto = require('crypto');
 
@@ -494,11 +494,31 @@ ipcMain.handle('vault:last', async () => {
 });
 ipcMain.handle('vault:recent', async () => (readSettings().recent || []).filter((r) => fs.existsSync(r)));
 ipcMain.handle('file:reveal', async (_e, rel) => { const abs = insideVault(rel); if (abs) shell.showItemInFolder(abs); });
+// A document a note links outside the folder (file:///…/datasheet.pdf) opens in its own app —
+// only documents and pictures, never anything that runs (.exe, .bat, .lnk, scripts, macros).
+const OPENABLE_EXT = /\.(pdf|png|jpe?g|gif|webp|svg|bmp|tiff?|txt|csv)$/i;
 ipcMain.handle('shell:external', async (_e, url) => {
   if (/^(https?|mailto):/i.test(url)) await shell.openExternal(url);
+  else if (/^file:/i.test(url) && prefs().localImages !== false) {
+    let p;
+    try { p = fileURLToPath(url); } catch { return false; }
+    if (OPENABLE_EXT.test(p) && fs.existsSync(p)) return (await shell.openPath(p)) === '';
+  }
+  return false;
 });
 ipcMain.handle('settings:get', async (_e, k) => readSettings()[k]);
 ipcMain.handle('settings:set', async (_e, k, v) => setSetting(k, v));
+
+// A picture outside the folder that a note links as file:///… (drawings kept on another
+// drive, say): served as vault://ext/<path> only if it is a picture file and Settings →
+// Files & links allows it. Nothing else outside the folder is ever read this way.
+const PICTURE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)$/i;
+function outsidePicture(u) {
+  let p = decodeURIComponent(u.pathname);
+  if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1);                 // '/F:/pics/a.svg' -> 'F:/pics/a.svg'
+  if (prefs().localImages === false || !PICTURE_EXT.test(p) || !path.isAbsolute(p)) return new Response('Not found', { status: 404 });
+  return net.fetch(pathToFileURL(p).toString());
+}
 
 // ---------- window ----------
 protocol.registerSchemesAsPrivileged([
@@ -642,6 +662,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     protocol.handle('vault', (req) => {
       const u = new URL(req.url);
+      if (u.hostname === 'ext') return outsidePicture(u);
       const abs = insideVault(decodeURIComponent(u.pathname.replace(/^\//, '')));
       if (!abs) return new Response('Not found', { status: 404 });
       return net.fetch(pathToFileURL(abs).toString());

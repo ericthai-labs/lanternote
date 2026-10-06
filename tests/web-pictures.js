@@ -24,4 +24,35 @@ try {
   await ev("Prefs.set('remoteImages', true)"); await sleep(800);
   ok('with the setting on, every picture loads', n('/html.png') >= 1 && (await ev("g('note').querySelectorAll('.web-pic').length")) === 0, JSON.stringify(hits));
   await ev("Prefs.set('remoteImages', false)"); await sleep(300);
+
+  // a picture outside the folder, linked as file:///… (drawings kept on another drive)
+  const outDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ln-out pics-'));
+  const outPic = path.join(outDir, 'chart 1.png'), outTxt = path.join(outDir, 'secret.txt');
+  fs.writeFileSync(outPic, png); fs.writeFileSync(outTxt, 'not a picture');
+  const fileUrl = (p) => require('url').pathToFileURL(p).toString();
+  fs.writeFileSync(path.join(dir, 'Out.md'), `# Out\n\n![drawing](${fileUrl(outPic)})\n\n![txt](${fileUrl(outTxt)})\n`);
+  await until("V.idx.has('Out.md')", 15000);
+  await ev("openNote('Out.md')"); await sleep(800);
+  ok('a picture outside the folder shows', await ev("[...g('note').querySelectorAll('img[data-ext-src]')].some((i) => i.naturalWidth > 0)"),
+    await ev("g('note').querySelector('img[data-ext-src]')?.src"));
+  const loads = (u) => ev(`new Promise((r) => { const i = new Image(); i.onload = () => r(true); i.onerror = () => r(false); i.src = extUrl('${u}') + '?' + Math.random(); })`);  // a fresh address: never the cache
+  ok('a file outside the folder that is no picture is not shown', (await ev("g('note').querySelectorAll('img[data-ext-src]').length")) === 1,
+    await ev("g('note').querySelector('.muted')?.textContent"));
+  ok('the picture loads while the setting is on', await loads(fileUrl(outPic)));
+  ok('live preview shows it too', /^vault:\/\/ext\//.test(await ev(`pictureUrl('${fileUrl(outPic)}', 'Out.md', false)`)));
+  await ev("Prefs.set('localImages', false)"); await sleep(800);
+  ok('setting off: shown as text, not read', (await ev("g('note').querySelectorAll('img[data-ext-src]').length")) === 0
+    && !(await loads(fileUrl(outPic))), await ev("g('note').querySelector('.muted')?.textContent"));
+  await ev("Prefs.set('localImages', true)"); await sleep(300);
+
+  // a document outside the folder: a link that opens it in its own app — never a program
+  const outBat = path.join(outDir, 'run.bat');
+  fs.writeFileSync(outBat, '@echo off');
+  fs.writeFileSync(path.join(dir, 'Docs.md'), `# Docs\n\n[datasheet](${fileUrl(path.join(outDir, 'ds.pdf'))}) · [program](${fileUrl(outBat)})\n`);
+  await until("V.idx.has('Docs.md')", 15000);
+  await ev("openNote('Docs.md')"); await sleep(800);
+  ok('a file:/// link shows as a link', (await ev("g('note').querySelectorAll('a[data-file-href]').length")) === 2,
+    await ev("g('note').querySelector('a[data-file-href]')?.dataset.fileHref"));
+  ok('a program outside the folder is never opened', (await ev(`window.api.openExternal('${fileUrl(outBat)}')`)) === false);
+  ok('a missing document is not opened', (await ev(`window.api.openExternal('${fileUrl(path.join(outDir, 'ds.pdf'))}')`)) === false);
 } finally { server.close(); }

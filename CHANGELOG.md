@@ -2,6 +2,16 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.22.0
+
+### Added
+- **Documents outside the folder open from a note.** A link with a `file:///` address to a PDF, a picture, or a text/CSV file — `[datasheet](file:///F:/docs/primer.pdf)` — opens it in its own app. Programs, scripts and anything else that can run are never opened this way. The same setting as for pictures (Settings → Files & links → Show pictures from outside the folder) turns it off.
+
+## 1.21.0
+
+### Added
+- **Pictures from outside the folder.** A note can show a picture kept elsewhere on the PC by linking it with a `file:///` address — `![drawing](file:///F:/drawings/sheet-01.svg)` — so large sets of drawings need not live in a synced notes folder. Only picture files are read this way; any other file outside the folder stays unreadable. Settings → Files & links → Show pictures from outside the folder turns it off (the link then shows as text).
+
 ## 1.20.0
 
 ### Added

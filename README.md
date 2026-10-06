@@ -197,7 +197,7 @@ Press **F1** in the app for the built-in guide, or read the illustrated [user gu
 
 ## Privacy
 
-Lanternote reads and writes only the folder you open and its own settings folder. It has no account, no telemetry and no update check; all libraries are bundled, so it runs without a network connection. Pictures linked from the internet (`![](https://…)`) are not fetched unless you click one or turn on Settings → Files & links → Load pictures from the internet, since fetching them tells the web server when a note is opened.
+Lanternote reads and writes only the folder you open and its own settings folder. It has no account, no telemetry and no update check; all libraries are bundled, so it runs without a network connection. Pictures linked from the internet (`![](https://…)`) are not fetched unless you click one or turn on Settings → Files & links → Load pictures from the internet, since fetching them tells the web server when a note is opened. Pictures a note links on this PC outside the folder (`![](file:///…)`) are shown, and links to documents there (PDF, picture, text) open in their own app; only those file types are read or opened that way, never a program, and Settings → Files & links can turn it off.
 
 The only exception is one you turn on yourself: when you connect an AI assistant, the notes it reads are sent to that assistant's provider. You can make the connection read-only and limit it to chosen folders.
 

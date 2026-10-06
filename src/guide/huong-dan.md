@@ -41,6 +41,7 @@ Màn hình gồm ba cột:
 - **Bấm vào một ảnh trong ghi chú** để mở trình xem toàn màn hình; **←** / **→** chuyển qua các ảnh khác trong cùng ghi chú.
 - File ảnh (PNG, JPG, GIF, WebP, SVG, BMP, AVIF, ICO) hiện trong cây thư mục và Quick open với biểu tượng 🖼 — bấm để xem; **←** / **→** chuyển qua các ảnh cùng thư mục. (Tắt được trong Cài đặt → Files & links.)
 - **Ảnh từ Internet** (địa chỉ `http://…`, `https://…` trong ghi chú) **không tự tải**: hiện một ô *"Picture from … · click to load"*, bấm vào mới tải đúng ảnh đó. Lý do: tải ảnh là báo cho máy chủ web biết bạn vừa mở ghi chú, lúc mấy giờ. Muốn luôn tải: **Settings → Files & links → Load pictures from the internet**.
+- **Ảnh và tài liệu ngoài thư mục** (địa chỉ `file:///…`, ví dụ `![hình](file:///F:/hinh/sheet-01.svg)`) — để bộ hình lớn ở ổ khác, không cần đưa vào thư mục đồng bộ. Ảnh hiện ngay trong ghi chú; link tới PDF, ảnh hoặc file văn bản (`[datasheet](file:///F:/docs/primer.pdf)`) bấm vào thì mở bằng ứng dụng mặc định. Chỉ đọc/mở các loại file đó, **không bao giờ chạy chương trình** (.exe, .bat…). Tắt: **Settings → Files & links → Show pictures from outside the folder** (link khi đó hiện dạng chữ).
 - **Cuộn chuột** để phóng to/thu nhỏ tại vị trí con trỏ, **kéo** để di chuyển, **bấm đúp** để chuyển giữa vừa màn hình và kích thước thật.
 - Phím: **+** / **−** phóng, **0** vừa màn hình, **1** kích thước thật, **R** xoay, **Esc** đóng.
 - Thanh trên cùng cho biết kích thước (điểm ảnh), dung lượng, và có nút **Show in folder**, **Open with…** (mở bằng ứng dụng mặc định của Windows).

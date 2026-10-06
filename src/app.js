@@ -15,6 +15,13 @@ const vaultUrl = (p) => 'vault://v/' + p.split('/').map(encodeURIComponent).join
 // arrays, tags) plus a small cache of note texts fetched on demand, so a
 // 200,000-note vault costs tens of MB here instead of gigabytes.
 const { baseOf, dirOf, stem, safeDecode, splitFm, linkTarget } = Core;
+// a picture a note links outside the folder ('file:///F:/pics/a.svg') -> its address in the window
+// (main.js serves it only if it is a picture and Settings → Files & links allows it)
+const extUrl = (href) => {
+  const m = /^file:\/\/\/?(.*)$/i.exec(href || '');
+  return m ? 'vault://ext/' + safeDecode(m[1].split('#')[0]).split('/').map(encodeURIComponent).join('/') : null;
+};
+const outsidePicture = (href) => /^file:/i.test(href) && IMG_EXT.test(href.split('#')[0]) && Prefs.get('localImages') !== false;
 const V = {
   name: '', root: '', files: [], idx: new Map(), notes: [], mtimes: new Float64Array(0), edges: new Uint32Array(0),
   byBase: new Map(), resolve: () => null,
@@ -175,6 +182,8 @@ marked.use({
     link(href, title, text) {
       const t = title ? ` title="${esc(title)}"` : '';
       if (!href) return text;
+      // a document outside the folder: kept off href (the sanitizer drops file: addresses), opened by main.js
+      if (/^file:/i.test(href)) return `<a class="external" data-file-href="${esc(href)}" title="${esc(safeDecode(href))}">${text}</a>`;
       if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return `<a class="external" href="${esc(href)}"${t}>${text}</a>`;
       if (href.startsWith('#')) return `<a class="internal" data-path="${esc(ctx().from)}" data-sub="${esc(safeDecode(href.slice(1)))}"${t}>${text}</a>`;
       const [file, sub = ''] = href.split('#');
@@ -187,6 +196,10 @@ marked.use({
       if (!href) return '';
       if (/^data:/i.test(href) || (/^https?:/i.test(href) && Prefs.get('remoteImages'))) return `<img src="${esc(href)}" alt="${esc(text)}"${t}>`;
       if (/^https?:/i.test(href)) return webPicture(href, text);
+      if (/^file:/i.test(href)) {
+        return outsidePicture(href) ? `<img data-ext-src="${esc(href)}" alt="${esc(text)}"${t}>`
+          : `<span class="muted">[picture outside the folder: ${esc(safeDecode(href))}]</span>`;
+      }
       const p = resolve(href, ctx().from);
       if (!p) return `<span class="muted">[image not found: ${esc(safeDecode(href))}]</span>`;
       return `<img data-vault-src="${esc(p)}" alt="${esc(text)}"${t}>`;
@@ -242,7 +255,7 @@ const slug = (s) => String(s).toLowerCase().replace(/<[^>]+>/g, '').replace(/[^\
 
 // ---------------- showing a note ----------------
 function sanitize(html) {
-  return DOMPurify.sanitize(html, { ADD_ATTR: ['data-path', 'data-sub', 'data-tag', 'data-missing', 'data-vault-src', 'data-web-src'] });
+  return DOMPurify.sanitize(html, { ADD_ATTR: ['data-path', 'data-sub', 'data-tag', 'data-missing', 'data-vault-src', 'data-web-src', 'data-ext-src', 'data-file-href'] });
 }
 // a picture from the internet while Settings → Files & links does not load them:
 // a placeholder that loads this one picture when clicked (main.js guardWeb)
@@ -361,6 +374,7 @@ function postProcess(root, origin = current) {
   });
   // attachments
   root.querySelectorAll('[data-vault-src]').forEach((el) => { el.src = vaultUrl(el.getAttribute('data-vault-src')); });
+  root.querySelectorAll('[data-ext-src]').forEach((el) => { el.src = extUrl(el.getAttribute('data-ext-src')); });
   // task lists
   let task = 0;
   root.querySelectorAll('li > input[type=checkbox]').forEach((cb) => {
@@ -466,6 +480,7 @@ function pictureUrl(src, from, wiki) {
   if (!wiki && /^data:/i.test(src)) return src;
   // pictures from the internet: only when Settings allows it (reading view offers a click to load)
   if (!wiki && /^https?:/i.test(src)) return Prefs.get('remoteImages') ? src : null;
+  if (!wiki && /^file:/i.test(src)) return outsidePicture(src) ? extUrl(src) : null;
   const file = wiki ? linkTarget(src).file : src.split('#')[0];
   const p = file ? resolve(file, from) : null;
   return p && IMG_EXT.test(p) ? vaultUrl(p) : null;
@@ -870,6 +885,8 @@ function go(step) {
 document.addEventListener('click', (e) => {
   const web = e.target.closest('#note .web-pic, #splitNote .web-pic');
   if (web) { e.preventDefault(); loadWebPicture(web); return; }
+  const doc = e.target.closest('#note a[data-file-href], #splitNote a[data-file-href]');
+  if (doc) { e.preventDefault(); window.api.openExternal(doc.dataset.fileHref); return; }
   // task checkboxes in reading view write back to the file
   const pic =e.target.closest('#note img, #splitNote img');
   if (pic && !e.target.closest('a')) { e.preventDefault(); Viewer.openFromNote(pic); return; }
