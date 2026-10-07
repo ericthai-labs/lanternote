@@ -1,11 +1,11 @@
 ---
 title: Lanternote — User Guide
-version: 1.18.0
+version: 1.22.0
 ---
 
 # Lanternote — User Guide
 
-*Version 1.18.0. Every picture was taken on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
+*Version 1.22.0. The pictures were taken with version 1.18.0 on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
 
 Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, backlinks, tags, canvases, live queries, tasks, calendars and a link graph. It stays fast on very large folders (measured on 200,000 notes), runs on PCs without a graphics card, and never sends your notes anywhere.
 
@@ -23,6 +23,9 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 | **Built for size** | ≈ 200,000 notes: opens in 1–2 s after the first time, queries in ≈ 0.1 s, the galaxy draws a frame in ≈ 1 ms. |
 | **Any PC** | Graph and galaxy are drawn without a graphics card. Portable: no installation, no admin rights. |
 | **Works with your AI assistant** | Claude and other MCP assistants can search, query and — if you allow it — edit your notes. Every AI change keeps the old text. |
+| **Opens at once** | A folder you opened before appears immediately from its saved index; double-click a note in Explorer and it opens in its folder. |
+| **Private by default** | Pictures from the internet are not fetched until you click one — fetching tells a web server when you opened a note. |
+| **Big files stay where they are** | Show drawings kept on another drive and open PDFs from a note by linking them with a `file:///` address. |
 | **Your files, your PC** | Plain `.md` files in your own folder. No account, no cloud; nothing leaves your PC unless you connect an AI. |
 
 ## Why Lanternote
@@ -41,6 +44,7 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 | Kanban boards stored as plain Markdown | ✅ built in | ❌ usually their own format | ⚠️ often through add-ons |
 | Portable, no installation, no admin rights | ✅ | ❌ account and install / browser | ⚠️ varies |
 | AI assistant can read and edit notes (MCP), with undo | ✅ built in | ⚠️ varies | ⚠️ often through add-ons |
+| Web pictures fetched only when you allow it | ✅ | ⚠️ varies | ⚠️ varies |
 
 *The comparison is general: features of other products differ from one product and version to the next. Figures for Lanternote were measured on a 203,000-note folder and on the made-up 139,000-note folder.*
 
@@ -56,6 +60,16 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 | Right | **Outline**, **Backlinks** (notes that link here), **Outgoing links** |
 
 The first time a large folder is opened the app reads every note (15–20 s for 200,000 notes); afterwards it opens in 1–2 s.
+
+## 1b. Opening notes, pictures and files
+
+- **From Explorer.** Settings → Advanced → **Set as Markdown app** registers Lanternote for `.md` files (for your Windows account, no admin rights) and opens Windows' Default apps, where you pick Lanternote once. A note inside a folder you have opened before then opens in that folder, from its saved index; if Lanternote is already running it just switches to the note.
+- **A folder opens at once.** The index saved last time is shown immediately; notes added, removed or edited while the app was closed are picked up in the background.
+- **Pictures from the internet** (`![](https://…)`) show as a placeholder — *Picture from … · click to load*. Click it to load that one picture, or turn on Settings → Files & links → **Load pictures from the internet**. The app blocks every web request it did not ask for.
+- **Pictures and documents outside the folder.** Large sets of drawings need not live in a synced notes folder: keep them on another drive and link them with a `file:///` address.
+  - `![sheet 1](file:///F:/drawings/sheet-01.svg)` shows the picture in the note.
+  - `[datasheet](file:///F:/docs/primer.pdf)` opens the PDF (or picture, text or CSV file) in its own app when clicked.
+  - Only those file types are read or opened this way — never a program or a script. Settings → Files & links → **Show pictures from outside the folder** turns it off; the links then show as text.
 
 ## 2. Quick open — Ctrl+O
 
@@ -208,6 +222,8 @@ Click **✦ Galaxy** to explore it:
 - **Galaxy turning speed** — Off, Slow, Normal, Fast.
 
 **AI connection**: see section 13.
+
+**Files & links**: *Load pictures from the internet* (off by default) and *Show pictures from outside the folder* (on by default; also allows opening linked PDFs and pictures) — see section 1b. **Advanced**: *Set as Markdown app*.
 
 Other sections: appearance (theme, text size, font, accent colour), editor, where new notes and pasted pictures go, daily notes, templates, query date formats, graph, file recovery.
 
