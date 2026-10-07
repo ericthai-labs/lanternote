@@ -3,6 +3,8 @@ const fs = require('fs'), path = require('path');
 const MOD = process.platform === 'darwin' ? 4 : 2;
 const dir = process.env.TV, rd = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const ok = (name, cond, extra = '') => log((cond ? 'PASS ' : 'FAIL ') + name, extra);
+// wait until a file says what a step expects (a fixed pause failed on slow CI runners)
+const fileSays = async (f, test, ms = 10000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { try { if (test(rd(f))) return true; } catch {} await sleep(200); } return false; };
 await until("typeof V !== 'undefined' && V.notes.length === 3 && current === 'Home.md'", 30000);
 // 1. edit + autosave
 await ev("Ed.toggleTo('edit')");
@@ -29,8 +31,8 @@ await ev("Ed._cm().view.dispatch({ changes: { from: 0, insert: 'MINE ' } })");
 fs.writeFileSync(path.join(dir, 'Home.md'), 'THEIRS\n' + rd('Home.md'));
 await sleep(2500);
 ok('conflict banner shown, nothing overwritten', !(await ev("g('conflict').hidden")) && rd('Home.md').startsWith('THEIRS'), await ev("g('editState').textContent"));
-await ev("g('keepMine').click()"); await sleep(1200);
-ok('keep my version saves mine', rd('Home.md').startsWith('MINE ') && !rd('Home.md').includes('THEIRS'));
+await ev("g('keepMine').click()");
+ok('keep my version saves mine', await fileSays('Home.md', (t) => t.startsWith('MINE ') && !t.includes('THEIRS')), rd('Home.md').slice(0, 80));
 // 5. rename A → Alpha via the title; links in Home and sub/B follow
 await ev("openNote('A.md')"); await until("Ed.path === 'A.md'", 5000);
 await ev("(() => { g('editTitle').focus(); g('editTitle').value = 'Alpha'; g('editTitle').blur(); g('editTitle').dispatchEvent(new Event('blur')); })()");

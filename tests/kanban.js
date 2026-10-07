@@ -45,11 +45,13 @@ await sleep(300);
 await ev("(() => { const t = document.querySelector('.kb-edit'); t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); })()");
 await sleep(1200);
 ok('add a card (Enter keeps adding, Esc stops)', /## Doing\n\n- \[ \] New card \[\[Spec\]\]\n/.test(rd()) && !(await ev("!!document.querySelector('.kb-edit')")), rd());
+await until2("[...document.querySelectorAll('.kb-card')].some(c => /New card/.test(c.textContent))");
 await ev("[...document.querySelectorAll('.kb-card')].find(c => /New card/.test(c.textContent)).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))");
 await until2("!!document.querySelector('.kb-edit')");
 await ev("(() => { const t = document.querySelector('.kb-edit'); t.value = 'Renamed card\\nwith a note'; t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()");
 await sleep(1200);
 ok('edit a card, a new line becomes an indented line', /- \[ \] Renamed card\n    with a note\n/.test(rd()), rd());
+await until2("[...document.querySelectorAll('.kb-card')].some(c => /Renamed card/.test(c.textContent))");
 await ev("[...document.querySelectorAll('.kb-card')].find(c => /Renamed card/.test(c.textContent)).querySelector('.kb-del').click()");
 await sleep(1200);
 ok('delete a card', !/Renamed card/.test(rd()));
@@ -63,6 +65,7 @@ await ev("(() => { const t = document.querySelector('.kb-title-edit'); t.value =
 await sleep(1200);
 ok('add and name a lane (before the archive)', /## Waiting\n\n\n\n\*\*\*\n\n## Archive/.test(rd()), rd().slice(-260));
 // move a lane
+await until2("document.querySelectorAll('.kb-lane-head').length > 3");
 await ev("(() => { const src = document.querySelectorAll('.kb-lane-head')[3]; const dt = new DataTransfer(); src.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt })); const tgt = document.querySelectorAll('.kb-lane')[0]; const r = tgt.getBoundingClientRect(); tgt.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.left + 5, clientY: r.top + 20, dataTransfer: dt })); tgt.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, clientX: r.left + 5, clientY: r.top + 20, dataTransfer: dt })); })()");
 await sleep(1200);
 ok('drag a lane to the front', (await lanes())[0].startsWith('Waiting:'), JSON.stringify(await lanes()));
