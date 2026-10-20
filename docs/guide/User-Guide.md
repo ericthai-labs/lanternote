@@ -113,7 +113,7 @@ Combine them freely: `"hydraulic pump" path:AMM -title:index`. **Search syntax**
 
 ![Folding](img/g04g-folding.png)
 
-Move the pointer to the left edge of the text: a **▾** appears beside headings, list items, code blocks and tables. Click it to fold the part away (it shows as **…**), click **▸** to open it again. Ctrl+Shift+[ and Ctrl+Shift+] fold and unfold where the cursor is, Ctrl+Alt+[ and Ctrl+Alt+] everything. Only the view changes, never the file. Settings → Editor → **Fold headings and lists**.
+Move the pointer to the left edge of the text: a **▾** appears beside headings, list items, code blocks and tables. Click it to fold the part away (it shows as **…**), click **▸** to open it again. Ctrl+Shift+[ and Ctrl+Shift+] fold and unfold where the cursor is, Ctrl+Alt+[ and Ctrl+Alt+] everything (on macOS, Cmd+Alt+[ and Cmd+Alt+] at the cursor). Only the view changes, never the file. Settings → Editor → **Fold headings and lists**.
 
 ### Live preview
 

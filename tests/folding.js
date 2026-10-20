@@ -32,10 +32,12 @@ await ev("Ed._cm().unfoldAll()"); await sleep(200);
 
 // keyboard: Ctrl+Shift+[ on the "- item" line folds the list item
 await ev("(() => { const v = Ed._cm().view; v.focus(); v.dispatch({ selection: { anchor: v.state.doc.line(12).from + 2 } }); })()");
-await send('Input.dispatchKeyEvent', { type: 'keyDown', key: '{', code: 'BracketLeft', windowsVirtualKeyCode: 219, modifiers: 2 | 8 });
-await send('Input.dispatchKeyEvent', { type: 'keyUp', key: '{', code: 'BracketLeft', windowsVirtualKeyCode: 219, modifiers: 2 | 8 });
+// the fold key: Ctrl+Shift+[ on Windows and Linux, Cmd+Alt+[ on macOS (CDP modifiers: Alt 1, Ctrl 2, Meta 4, Shift 8)
+const foldKey = process.platform === 'darwin' ? { key: '[', modifiers: 4 | 1 } : { key: '{', modifiers: 2 | 8 };
+await send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'BracketLeft', windowsVirtualKeyCode: 219, ...foldKey });
+await send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'BracketLeft', windowsVirtualKeyCode: 219, ...foldKey });
 await sleep(300);
-ok('Ctrl+Shift+[ folds where the cursor is', (await lines()) < before, `${before} → ${await lines()}`);
+ok('the fold key folds where the cursor is', (await lines()) < before, `${before} → ${await lines()}`);
 await ev("Ed._cm().unfoldAll()"); await sleep(200);
 
 await ev("Prefs.set('folding', false)"); await sleep(300);
