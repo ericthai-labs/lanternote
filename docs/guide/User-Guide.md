@@ -5,7 +5,7 @@ version: 1.22.0
 
 # Lanternote — User Guide
 
-*Version 1.22.0. The pictures were taken with version 1.18.0 on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
+*Version 1.22.0. The pictures were taken with version 1.22.0 on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
 
 Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, backlinks, tags, canvases, live queries, tasks, calendars and a link graph. It stays fast on very large folders (measured on 200,000 notes), runs on PCs without a graphics card, and never sends your notes anywhere.
 
