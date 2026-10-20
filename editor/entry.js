@@ -7,11 +7,12 @@
 //   • history, search (Ctrl+F), Tab indent, soft wrapping;
 //   • Ctrl+B / Ctrl+I / Ctrl+K formatting, Ctrl+Enter toggles a task;
 //   • pasted images handed to the app to store as attachments;
-//   • live preview (editor/live-preview.js), switched on and off at run time.
+//   • live preview (editor/live-preview.js), switched on and off at run time;
+//   • folding of headings and lists (gutter next to the text, Ctrl+Shift+[ / ]).
 import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, keymap, drawSelection, highlightActiveLine, placeholder, dropCursor } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab, undo, redo, undoDepth, redoDepth } from '@codemirror/commands';
-import { syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching } from '@codemirror/language';
+import { syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching, foldGutter, codeFolding, foldKeymap, foldAll, unfoldAll } from '@codemirror/language';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap, highlightSelectionMatches } from '@codemirror/search';
@@ -50,6 +51,22 @@ const theme = EditorView.theme({
   '.cm-button': { background: 'var(--bg3)', color: 'var(--text)', backgroundImage: 'none', border: '1px solid var(--line)' },
 });
 
+// folding: a slim gutter placed just left of the text. The text column is
+// centred, so the gutter is pushed in by half the free width, and the
+// content's left padding shrinks by the gutter's width: the text stays where
+// it is without folding.
+const foldExt = [
+  codeFolding({ placeholderText: '…' }),
+  foldGutter({ markerDOM: (open) => { const s = document.createElement('span'); s.className = 'cm-fold-mark' + (open ? '' : ' closed'); s.textContent = open ? '▾' : '▸'; s.title = open ? 'Fold (Ctrl+Shift+[)' : 'Unfold (Ctrl+Shift+])'; return s; } }),
+  EditorView.theme({
+    '& .cm-scroller .cm-gutters': { background: 'transparent', border: 'none', marginLeft: 'max(0px, calc((100% - var(--note-width, 780px)) / 2 + 8px))' },
+    '& .cm-scroller .cm-content': { marginLeft: '0 !important', paddingLeft: '6px !important' },
+    '.cm-foldGutter .cm-gutterElement': { width: '18px', textAlign: 'center', cursor: 'pointer', color: 'var(--faint)', opacity: '0', transition: 'opacity .15s' },
+    '.cm-gutters:hover .cm-foldGutter .cm-gutterElement, .cm-foldGutter .cm-gutterElement:has(.closed)': { opacity: '1' },
+    '.cm-foldPlaceholder': { background: 'var(--bg3)', border: '1px solid var(--line)', color: 'var(--muted)', borderRadius: '4px', padding: '0 6px', margin: '0 4px' },
+  }),
+];
+
 // wrap the selection (or the word) in a marker such as ** or _
 function wrap(mark) {
   return (view) => {
@@ -86,6 +103,8 @@ function link(view) {
 export function create(parent, opts) {
   const dark = new Compartment();
   const lp = new Compartment();
+  const fold = new Compartment();
+  let isFold = opts.folding !== false;
   const lpExt = livePreview({ imageUrl: opts.imageUrl, onOpenLink: opts.onOpenLink });
   let isLive = opts.livePreview !== false;
   const completions = [];
@@ -138,11 +157,12 @@ export function create(parent, opts) {
           { key: 'Mod-i', run: wrap('*') },
           { key: 'Mod-k', run: link },
           { key: 'Mod-Enter', run: toggleTask },
-          ...closeBracketsKeymap, ...completionKeymap, ...searchKeymap, ...historyKeymap, ...defaultKeymap, indentWithTab,
+          ...foldKeymap, ...closeBracketsKeymap, ...completionKeymap, ...searchKeymap, ...historyKeymap, ...defaultKeymap, indentWithTab,
         ]),
         theme,
         dark.of(EditorView.theme({}, { dark: isDark })),
         lp.of(isLive ? lpExt : []),
+        fold.of(isFold ? foldExt : []),
         EditorView.updateListener.of((u) => { if (u.docChanged && opts.onChange) opts.onChange(); if (u.docChanged && opts.onHistory) opts.onHistory(); }),
         EditorView.domEventHandlers({
           paste(e) {
@@ -196,6 +216,15 @@ export function create(parent, opts) {
       view.dispatch({ effects: dark.reconfigure(EditorView.theme({}, { dark: d })) });
       for (const [k, st] of states) states.set(k, st.update({ effects: dark.reconfigure(EditorView.theme({}, { dark: d })) }).state);
     },
+    get folding() { return isFold; },
+    setFolding(on) {
+      isFold = !!on;
+      const eff = fold.reconfigure(isFold ? foldExt : []);
+      view.dispatch({ effects: eff });
+      for (const [k, st] of states) states.set(k, st.update({ effects: eff }).state);
+    },
+    foldAll: () => { foldAll(view); return true; },
+    unfoldAll: () => { unfoldAll(view); return true; },
     get livePreview() { return isLive; },
     setLivePreview(on) {
       isLive = !!on;

@@ -232,7 +232,7 @@ const TOOLS = [
       const tags = snap.tagNames.map((t, k) => [t, snap.tagOff[k + 1] - snap.tagOff[k]]).sort((a, b) => b[1] - a[1]).slice(0, 30);
       return { folder: snap.name, notes: notes.length, links: snap.edges.length / 2, write: WRITE, only: ONLY.length ? ONLY : undefined, folders: [...folders].sort((a, b) => b[1] - a[1]).map(([name, n]) => ({ name, notes: n })), tags: tags.map(([t, n]) => ({ tag: '#' + t, notes: n })) };
     } },
-  { name: 'search', description: 'Full-text search in every note (all words must appear; accents optional). Returns paths with a snippet.', inputSchema: S({ query: str('Words to find.'), limit: int('Maximum results (default 20, at most 100).') }, ['query']), annotations: { readOnlyHint: true },
+  { name: 'search', description: 'Full-text search in every note. All words must appear (as word starts; accents optional). Syntax: "exact phrase", -word or -"phrase" to exclude, a OR b, *1133 for a fragment inside a word or code, path:folder, title:text, tag:#name. Returns paths with a snippet.', inputSchema: S({ query: str('Words to find, with the syntax above.'), limit: int('Maximum results (default 20, at most 100).') }, ['query']), annotations: { readOnlyHint: true },
     run: async ({ query, limit = 20 }) => {
       // right after opening a folder the text index may still be building: wait for it (up to 2 minutes)
       let r = await ask('search', { q: query, limit: Math.min(100, limit) * 3 });

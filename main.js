@@ -483,6 +483,7 @@ if (process.env.LANTERNOTE_TEST) ipcMain.handle('test:crash-indexer', async () =
 if (process.env.LANTERNOTE_TEST) ipcMain.handle('test:open-file', async (_e, f) => { pendingOpen = f; win.webContents.send('menu', 'pending-open'); });
 ipcMain.handle('index:dv', async (_e, q, origin) => ask('dv', { q, origin }));
 ipcMain.handle('index:snippets', async (_e, target, sources) => ask('snippets', { target, sources }));
+ipcMain.handle('index:mentions', async (_e, a) => ask('mentions', a));
 ipcMain.handle('vault:last', async () => {
   if (pendingOpen) {
     const f = pendingOpen; pendingOpen = null;

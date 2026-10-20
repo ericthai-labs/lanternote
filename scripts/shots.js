@@ -23,6 +23,9 @@ await ev("Ed.toggleTo('read')");
 await view(1440, 900);
 await panels(true);
 
+// 1.23: a few bookmarks above the file list
+await ev("Bookmarks.list.forEach(p => Bookmarks.toggle(p)); ['Welcome.md', 'Command Center.md', 'Tasks and calendar.md', '04-Library/Field guide — soil and water.md'].forEach(p => Bookmarks.toggle(p))");
+await ev("g('toast').hidden = true");
 await openAndWait('Welcome.md');
 await shot('g01-main-window');
 await ev("openSwitcher(); g('swInput').value = 'amber harbor'; swFilter()"); await sleep(500);
@@ -48,6 +51,38 @@ await ev("Split.open('Welcome.md')"); await until("Split.path === 'Welcome.md'",
 await shot('g04c-tabs-split');
 await ev("Split.hide()"); await ev("Tabs.close(1)"); await sleep(400);
 await ev("Ed.toggleTo('read')");
+// 1.23: search syntax, link preview, footnotes, unlinked mentions, folding
+await ev(`setTab('search'); g('searchHelp').open = true; g('searchInput').value = '"pattern season" path:04-Library -river'; runSearch()`);
+await until("/notes?/.test(g('searchInfo').textContent) && !/not complete|Searching/.test(g('searchInfo').textContent)", 240000); await sleep(600);
+await shot('g03b-search-syntax');
+await ev("g('searchHelp').open = false; setTab('files')");
+const guideNote = '04-Library/Field guide — soil and water.md', rainNote = '02-Areas/Home/Rain garden.md';
+await openAndWait(guideNote);
+await shot('g04e-footnotes');
+const linkAt = JSON.parse(await ev(`(() => { const b = document.querySelector('#note a.internal[data-path=${JSON.stringify(rainNote)}]').getBoundingClientRect(); return JSON.stringify({ x: b.x + 8, y: b.y + b.height / 2 }); })()`));
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: linkAt.x, y: linkAt.y });
+await until('Hover.visible', 5000); await sleep(500);
+await shot('g04d-hover-preview');
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 600 }); await until('!Hover.visible', 5000);
+await openAndWait(rainNote);
+await ev("g('mentionsBox').open = true");
+// the folder was just written by make-demo-vault: the index may still be catching up, so look again now and then
+await until("((window.umTry = (window.umTry || 0) + 1) % 12 === 0 && renderMentions(), g('mentions').querySelectorAll('.um').length >= 3)", 300000).catch(async (e) => { log('mentions:', await ev("g('mentions').textContent")); log('mentions direct:', await ev("(async () => { const n = mentionNames(current); const ex = [current, ...backLinks(current)]; const r = await window.api.mentions({ names: n, exclude: ex, limit: 10 }); return JSON.stringify({ cur: current, n, exN: ex.length, ex: ex.slice(0, 8), r }).slice(0, 900); })()")); throw e; }); await sleep(400);
+await shot('g04f-mentions');
+await ev("g('mentionsBox').open = false");
+await openAndWait(guideNote);
+await ev("Ed.toggleTo('edit')"); await until("Ed.active() && !!Ed._cm()", 10000); await sleep(600);
+for (const h of ['## Drainage test', '## Sources']) {
+  await ev(`(() => { const v = Ed._cm().view; v.focus(); const t = v.state.doc.toString(); v.dispatch({ selection: { anchor: t.indexOf(${JSON.stringify(h)}) + 3 } }); })()`);
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: '{', code: 'BracketLeft', windowsVirtualKeyCode: 219, modifiers: 2 | 8 });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: '{', code: 'BracketLeft', windowsVirtualKeyCode: 219, modifiers: 2 | 8 });
+  await sleep(200);
+}
+await ev("(() => { const v = Ed._cm().view; v.dispatch({ selection: { anchor: v.state.doc.length } }); v.scrollDOM.scrollTop = 0; })()");
+const gut = JSON.parse(await ev("(() => { const b = document.querySelector('#editorHost .cm-gutters').getBoundingClientRect(); return JSON.stringify({ x: b.x + b.width / 2, y: b.y + 140 }); })()"));
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: gut.x, y: gut.y }); await sleep(600); // the open marks show while the pointer is near
+await shot('g04g-folding');
+await ev("Ed._cm().unfoldAll()"); await ev("Ed.toggleTo('read')");
 await ev("openNote('Ideas board.canvas')"); await until("CanvasView.active()", 10000); await sleep(1200);
 await shot('g05-canvas');
 await openAndWait('Projects dashboard.md');
@@ -136,6 +171,17 @@ await ev("Ed.toggleTo('edit')"); await until("Ed.active()", 5000); await ev(endO
 await ev("Split.open('Welcome.md')"); await until("Split.path === 'Welcome.md'", 10000); await sleep(1200);
 await shot('ad-raw-write-wide');
 await ev("Split.hide()"); await ev("Ed.toggleTo('read')");
+// finding and reading (1.23): a phrase search on the left, a link preview over the note
+await panels(true, false);
+await openAndWait(guideNote);
+await ev(`setTab('search'); g('searchHelp').open = false; g('searchInput').value = '"rain garden" OR "rain bed"'; runSearch()`);
+await until("/notes?/.test(g('searchInfo').textContent) && !/Searching/.test(g('searchInfo').textContent)", 60000); await sleep(500);
+const adLink = JSON.parse(await ev(`(() => { const b = document.querySelector('#note a.internal[data-path=${JSON.stringify(rainNote)}]').getBoundingClientRect(); return JSON.stringify({ x: b.x + 8, y: b.y + b.height / 2 }); })()`));
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: adLink.x, y: adLink.y });
+await until('Hover.visible', 5000); await sleep(500);
+await shot('ad-raw-find-wide');
+await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 5, y: 900 }); await until('!Hover.visible', 5000);
+await ev("setTab('files')");
 await ev("showView('note')");
 const errs = consoleLines.filter((l) => /EXCEPTION|^error:/i.test(l));
 log('errors', errs.length, errs.join(' / '));

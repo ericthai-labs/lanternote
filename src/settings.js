@@ -21,6 +21,8 @@ const Prefs = (() => {
       { key: 'defaultMode', label: 'Notes open in', type: 'select', def: 'remember', options: [['remember', 'The mode used last'], ['read', 'Reading view'], ['edit', 'Editing view']] },
       { key: 'autosaveDelay', label: 'Save after typing stops', type: 'number', def: 0.8, min: 0.3, max: 10, step: 0.1, unit: 's' },
       { key: 'spellcheck', label: 'Spell check', type: 'toggle', def: false },
+      { key: 'folding', label: 'Fold headings and lists', type: 'toggle', def: true, help: 'A ▾ next to a heading or list folds it away (Ctrl+Shift+[ folds, Ctrl+Shift+] unfolds). Only the view changes, never the file.' },
+      { key: 'hoverPreview', label: 'Preview links on hover', type: 'toggle', def: true, help: 'Rest the pointer on a link to see the note it points to. While editing, hold Ctrl.' },
       { key: 'activeLine', label: 'Highlight the line being edited', type: 'toggle', def: true },
       { key: 'livePreview', label: 'Live preview', type: 'toggle', def: true, help: 'While editing, Markdown marks (**, #, [[ ]]…) are hidden except on the line with the cursor; pictures, checkboxes and links show as in reading view. Click a link to open it, Ctrl+click for a new tab, Alt+click for the other pane.' },
     ]],
@@ -97,7 +99,7 @@ const Prefs = (() => {
     if (acc && acc !== '#c27a12' && acc !== '#7b5bd6') { r.setProperty('--accent', acc); r.setProperty('--link', acc); } else { r.removeProperty('--accent'); r.removeProperty('--link'); }
     document.body.classList.toggle('no-active-line', !get('activeLine'));
     if (!changed || changed === 'theme') applyTheme();
-    if ((changed === 'spellcheck' || changed === 'livePreview') && typeof Ed !== 'undefined') Ed.settingsChanged();
+    if ((changed === 'spellcheck' || changed === 'livePreview' || changed === 'folding') && typeof Ed !== 'undefined') Ed.settingsChanged();
     if ((changed === 'dvDateFormat' || changed === 'dvDateTimeFormat') && typeof DvView !== 'undefined') DvView.refresh();
     if (changed === 'showImages' && typeof renderTree === 'function') { T = null; renderTree(); }
     if ((changed === 'remoteImages' || changed === 'localImages') && typeof openNote === 'function' && current && /\.md$/i.test(current)) openNote(current, '', { push: false });

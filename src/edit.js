@@ -35,6 +35,7 @@ const Ed = (() => {
       tagOptions,
       onPasteFiles: pasteFiles,
       livePreview: Prefs.get('livePreview'),
+      folding: Prefs.get('folding') !== false,
       imageUrl: (src, wiki) => pictureUrl(src, path, wiki),
       onOpenLink: (link, how) => followLink(link, path, { ...how, pane: 'main' }),
     });
@@ -313,7 +314,7 @@ const Ed = (() => {
       } catch { failed++; }
       if (i % 25 === 0) setStatus(`Updating links ${i + 1} / ${sources.length}`);
     }
-    Tabs.renamed(from, to); Split.renamed(from, to);
+    Tabs.renamed(from, to); Split.renamed(from, to); Bookmarks.renamed(from, to);
     const canvases = policy === 'never' ? 0 : await CanvasView.renameFileIn(from, to);
     toast(`Renamed. ${links} link${links === 1 ? '' : 's'} updated in ${notes} note${notes === 1 ? '' : 's'}` + (canvases ? ` and ${canvases} canvas${canvases === 1 ? '' : 'es'}` : '') + (failed ? ` · ${failed} could not be updated` : ''));
     if (wasOpen) { if (path === from) path = to; await openWhenIndexed(to, mode === 'edit'); }
@@ -406,6 +407,7 @@ const Ed = (() => {
       { label: 'Open in new tab', run: () => Tabs.openNew(p) },
       { label: 'Open in the right pane', run: () => Split.open(p, '', { newTab: true }) },
       { label: 'Edit', run: () => { mode = 'edit'; current = null; openNote(p); } },
+      { label: Bookmarks.has(p) ? 'Remove bookmark' : 'Bookmark', run: () => Bookmarks.toggle(p) },
       '-',
       { label: 'New note in this folder', run: () => newNote(dirOf(p)) },
       { label: 'New canvas in this folder', run: () => CanvasView.create(dirOf(p)) },
@@ -448,7 +450,10 @@ const Ed = (() => {
     ['Open this note in the right pane', 'Ctrl+Alt+→', () => current && Split.open(current, '', { newTab: true })],
     ['Close the right pane', '', () => Split.hide()],
     ['Toggle live preview', '', () => Prefs.set('livePreview', !Prefs.get('livePreview'))],
+    ['Fold all headings', 'Ctrl+Alt+[', () => { if (cm && active()) cm.foldAll(); else toast('Folding works while editing (Ctrl+E)'); }],
+    ['Unfold all', 'Ctrl+Alt+]', () => { if (cm && active()) cm.unfoldAll(); }],
     ["Open today's daily note", '', () => dailyNote()],
+    ['Bookmark / remove bookmark for this note', '', () => current && Bookmarks.toggle(current)],
     ['Rename current note…', '', () => current && renamePrompt(current)],
     ['Move current note to folder…', '', () => current && movePrompt(current)],
     ['Delete current note', '', () => current && remove(current)],
@@ -544,9 +549,9 @@ const Ed = (() => {
     get mode() { return mode; },
     get renaming() { return renaming; },
     get path() { return path; },
-    active, show, hide, flush, initMode, externalChange, toggle, toggleTo, newNote, createFromLink, dailyNote, palette, toggleTaskAt,
+    active, show, hide, flush, initMode, externalChange, toggle, toggleTo, newNote, createFromLink, dailyNote, palette, toggleTaskAt, renameTo: rename,
     themeChanged() { if (cm) cm.setDark(document.documentElement.dataset.theme === 'dark'); Split.themeChanged(); },
-    settingsChanged() { if (cm) { cm.setLivePreview(Prefs.get('livePreview')); cm.view.dispatch({}); } Split.settingsChanged(); },
+    settingsChanged() { if (cm) { cm.setLivePreview(Prefs.get('livePreview')); cm.setFolding(Prefs.get('folding') !== false); cm.view.dispatch({}); } Split.settingsChanged(); },
     // insert text at the cursor of the note being edited (templates)
     // atEnd: append after the note's text (used when the user was reading, so the cursor means nothing)
     insertText(t, atEnd) {

@@ -49,6 +49,36 @@
   const TAG_RE = /(^|[\s(,;])#([\p{L}\p{N}_\-/]*[\p{L}_\-/][\p{L}\p{N}_\-/]*)/gu;
   const stripCode = (s) => s.replace(/^(```|~~~)[\s\S]*?^\1/gm, '').replace(/`[^`\n]*`/g, '');
 
+  // ---------------- unlinked mentions ----------------
+  // Places where a note's name (or an alias) appears as whole words, outside
+  // links, code, URLs and the front matter: [{ line, col, len, text }] (0-based).
+  const blank = (m) => m.replace(/[^\n]/g, ' ');
+  function findMentions(text, names, max = 50) {
+    const masked = text
+      .replace(FM_RE, blank)
+      .replace(/^(```|~~~)[\s\S]*?^\1/gm, blank)
+      .replace(/`[^`\n]*`/g, blank)
+      .replace(/!?\[\[[^\]\n]*\]\]/g, blank)
+      .replace(/\]\([^)\n]*\)/g, blank)
+      .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, blank)
+      .replace(/<[^>\n]+>/g, blank);
+    const res = names.filter((n) => n && n.trim().length >= 3)
+      .map((n) => n.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'));
+    if (!res.length) return [];
+    const re = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${res.join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
+    const out = [];
+    const starts = [0];
+    for (let i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) starts.push(i + 1);
+    let li = 0;
+    for (const m of masked.matchAll(re)) {
+      if (m[0].includes('\n')) continue;
+      while (li + 1 < starts.length && starts[li + 1] <= m.index) li++;
+      out.push({ line: li, col: m.index - starts[li], len: m[0].length, text: text.substr(m.index, m[0].length) });
+      if (out.length >= max) break;
+    }
+    return out;
+  }
+
   const INLINE_LINE = /^[ \t]*(?:[-*+][ \t]+)?([^\s:[\]()`][^:[\]()`\n]*?)::[ \t]*(.*)$/gm;
   const INLINE_BRACKET = /[[(]([^\s:[\]()`][^:[\]()`\n]*?)::[ \t]*([^\])\n]*)[\])]/g;
 
@@ -160,7 +190,7 @@
     return byBase;
   }
 
-  const api = { MD_EXT, baseOf, dirOf, stem, norm, safeDecode, splitFm, parseYaml, TAG_RE, stripCode, linkTarget, parseNote, parseTasks, makeResolver, buildByBase };
+  const api = { MD_EXT, baseOf, dirOf, stem, norm, safeDecode, splitFm, parseYaml, TAG_RE, stripCode, findMentions, linkTarget, parseNote, parseTasks, makeResolver, buildByBase };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Core = api;
 })(typeof self !== 'undefined' ? self : this);

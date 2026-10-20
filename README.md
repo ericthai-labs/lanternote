@@ -70,7 +70,7 @@ Live preview (Markdown marks hide away from the cursor; checkboxes, pictures and
 <td valign="top">
 
 ### Search everything, instantly
-Full-text search across every note, accent-insensitive, with `tag:` filters. Quick open (`Ctrl+O`) finds any note by name as you type.
+Full-text search across every note, accent-insensitive: `"exact phrases"`, `-exclusions`, `OR`, `path:`, `title:`, `tag:` — and `*1133` finds a fragment inside a word or a part number. Quick open (`Ctrl+O`) finds any note by name as you type.
 
 <img src="docs/images/search.jpg" alt="Search">
 </td>
@@ -101,6 +101,22 @@ Drag cards between lanes. Boards are plain Markdown notes in the common board fo
 <tr>
 <td valign="top">
 
+### Read without leaving the page
+Point at a link to preview the note (or just the heading it points to) in a card you can scroll and click in. Footnotes jump to their text and back; bookmarks keep the notes you use most above the file list.
+
+<img src="docs/images/link-preview.jpg" alt="Link preview">
+</td>
+<td valign="top">
+
+### Unlinked mentions
+See every note that writes this note's name — or one of its aliases — without linking it, and turn a mention into a link in one click, keeping the words as written.
+
+<img src="docs/images/mentions.jpg" alt="Unlinked mentions">
+</td>
+</tr>
+<tr>
+<td valign="top">
+
 ### Canvas
 Lay out notes, text and links on an infinite board. Canvases use the open [JSON Canvas](https://jsoncanvas.org) format.
 
@@ -116,7 +132,7 @@ Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run querie
 </tr>
 </table>
 
-**Also included:** wiki links with headings, blocks and aliases · embeds (`![[note]]`, images, audio, video) · backlinks and outline · front-matter properties · tags and nested tags · callouts · highlights and comments · Mermaid diagrams · note templates · daily notes · image viewer · command palette · print to PDF · light and dark themes.
+**Also included:** wiki links with headings, blocks and aliases · footnotes · folding of headings, lists and code in the editor · embeds (`![[note]]`, images, audio, video) · backlinks and outline · front-matter properties · tags and nested tags · callouts · highlights and comments · Mermaid diagrams · note templates · daily notes · image viewer · command palette · print to PDF · light and dark themes.
 
 <p align="center">
   <img src="docs/images/light-theme.jpg" alt="Light theme" width="80%">

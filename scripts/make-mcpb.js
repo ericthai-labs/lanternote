@@ -16,7 +16,7 @@ const src = path.join(__dirname, '..');
 const pkg = require(path.join(src, 'package.json'));
 const version = pkg.version;
 const out = path.resolve(process.argv[2] || path.join(src, `dist-${version}`));
-const FILES = ['mcp/lanternote-mcp.js', 'indexer.js', 'search-index.js', 'src/core.js', 'src/dataview.js', 'package.json', 'LICENSE.txt', 'NOTICE'];
+const FILES = ['mcp/lanternote-mcp.js', 'indexer.js', 'search-index.js', 'search-query.js', 'src/core.js', 'src/dataview.js', 'package.json', 'LICENSE.txt', 'NOTICE'];
 const REPO = 'https://github.com/ericthai-labs/lanternote';
 
 const TOOLS = [

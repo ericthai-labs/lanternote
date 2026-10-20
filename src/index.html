@@ -40,10 +40,24 @@
     </nav>
     <section class="pane on" id="pane-files">
       <input id="fileFilter" class="field" placeholder="Filter file names">
+      <details id="bmBox" class="bm-box" open hidden><summary>Bookmarks <span id="bmCount" class="count"></span></summary><div id="bmList"></div></details>
       <div id="tree" class="tree"></div>
     </section>
     <section class="pane" id="pane-search">
-      <input id="searchInput" class="field" placeholder="Search text — tag:#audit also works">
+      <input id="searchInput" class="field" placeholder='Search — "exact phrase", -word, OR, *1133, path:, title:, tag:'>
+      <details id="searchHelp" class="search-help"><summary>Search syntax</summary>
+        <table>
+          <tr><td><code>pump motor</code></td><td>both words (word starts)</td></tr>
+          <tr><td><code>"hydraulic pump"</code></td><td>the exact phrase</td></tr>
+          <tr><td><code>-draft</code> <code>-"old rev"</code></td><td>leave notes out</td></tr>
+          <tr><td><code>valve OR actuator</code></td><td>either one</td></tr>
+          <tr><td><code>*1133</code></td><td>inside a word or code (3+ characters)</td></tr>
+          <tr><td><code>path:AMM/29</code></td><td>in a folder</td></tr>
+          <tr><td><code>title:pump</code></td><td>in the note name</td></tr>
+          <tr><td><code>tag:#sop</code></td><td>with a tag or sub-tag</td></tr>
+        </table>
+        <div class="muted small">Accents are optional; terms can be combined.</div>
+      </details>
       <div id="searchInfo" class="muted small"></div>
       <div id="searchResults"></div>
     </section>
@@ -189,6 +203,7 @@
   <aside class="right" id="right">
     <details open><summary>Outline</summary><div id="outline" class="outline"></div></details>
     <details open><summary>Backlinks <span id="blCount" class="count"></span></summary><div id="backlinks"></div></details>
+    <details id="mentionsBox"><summary>Unlinked mentions <span id="umCount" class="count"></span></summary><div id="mentions"></div></details>
     <details><summary>Outgoing links <span id="olCount" class="count"></span></summary><div id="outlinks"></div></details>
   </aside>
 </div>
@@ -253,6 +268,8 @@
 <script src="edit.js"></script>
 <script src="command.js"></script>
 <script src="panes.js"></script>
+<script src="bookmarks.js"></script>
 <script src="app.js"></script>
+<script src="hover.js"></script>
 </body>
 </html>

@@ -157,6 +157,39 @@ class Index {
     }
     return out;
   }
+  // paths of the notes with a word starting with `w` (index + changed notes)
+  pathsFor(w) {
+    const out = new Set();
+    for (const d of this.prefixDocs(w)) out.add(this.docs[d]);
+    for (const [p, set] of this.delta) { for (const x of set) if (x.startsWith(w)) { out.add(p); break; } }
+    return out;
+  }
+  // paths of the notes with a word containing `frag` anywhere: a scan of the
+  // dictionary (a few MB), not of the notes. At most `maxWords` words are
+  // used; `capped` says some were left out.
+  pathsWithin(frag, maxWords = 20000) {
+    const fb = Buffer.from(frag, 'utf8');
+    const out = new Set();
+    let words = 0, capped = false;
+    const rankAt = (off) => { let lo = 0, hi = this.words; while (lo < hi) { const mid = (lo + hi) >>> 1; if (this.dictOff[mid + 1] <= off) lo = mid + 1; else hi = mid; } return lo; };
+    for (let i = this.dict.indexOf(fb); i >= 0 && i < this.dict.length; i = this.dict.indexOf(fb, i)) {
+      const r = rankAt(i);
+      const wordEnd = this.dictOff[r + 1];
+      if (wordEnd - i < fb.length) { i = wordEnd; continue; } // spans two words
+      if (++words > maxWords) { capped = true; break; }
+      let p = this.postOff[r], doc = 0;
+      const end = this.postOff[r + 1];
+      while (p < end) {
+        let v = 0, s = 0, b;
+        do { b = this.post[p++]; v |= (b & 0x7f) << s; s += 7; } while (b & 0x80);
+        doc += v;
+        if (!this.stale.has(doc)) out.add(this.docs[doc]);
+      }
+      i = wordEnd; // next match in a later word
+    }
+    for (const [p, set] of this.delta) { for (const x of set) if (x.includes(frag)) { out.add(p); break; } }
+    return { paths: out, words, capped };
+  }
   // a note changed or appeared: its old postings no longer count
   update(path, text) {
     const d = this.docOf.get(path);

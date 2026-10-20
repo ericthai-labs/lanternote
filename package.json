@@ -1,7 +1,7 @@
 {
   "name": "lanternote",
   "productName": "Lanternote",
-  "version": "1.22.0",
+  "version": "1.23.0",
   "description": "Lanternote — Markdown notes with links, graph and editing, for very large vaults",
   "main": "main.js",
   "author": "Eric Thai - Thai Ba Hoa",
@@ -48,6 +48,7 @@
       "indexer.js",
       "layout-worker.js",
       "search-index.js",
+      "search-query.js",
       "mcp/**",
       "src/**",
       "package.json",

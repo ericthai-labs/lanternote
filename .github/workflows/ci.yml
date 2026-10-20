@@ -39,6 +39,8 @@ jobs:
         run: node tests/mcp.js
       - name: Index cache
         run: node tests/index-cache.js
+      - name: Search syntax
+        run: node tests/search.js
       - name: UI scenarios (Linux, virtual display)
         if: runner.os == 'Linux'
         run: |

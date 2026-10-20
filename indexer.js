@@ -16,6 +16,7 @@ const v8 = require('v8');
 const crypto = require('crypto');
 const Core = require('./src/core.js');
 const SI = require('./search-index.js');
+const SQ = require('./search-query.js');
 const DQL = require('./src/dataview.js');
 
 const MD_EXT = new Set(['.md', '.markdown']);
@@ -443,31 +444,90 @@ async function update(changed) {
 }
 
 // ---------------- search ----------------
-// Candidates come from the word index; snippets are read from the files.
+// Syntax in search-query.js. Candidates come from the word index (words,
+// fragments inside words) and the note list (path:, title:, tag:); phrases
+// are then checked in the text of each candidate. Snippets are read from the files.
+const TEXT_KINDS = new Set(['word', 'all', 'phrase', 'fragment']);
+const VERIFY_MAX = 20000; // candidate notes read to check phrases…
+const VERIFY_MS = 3000;   // …and how long reading may take
+const COLLATE = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true }).compare;
+function snippetOf(text, marks) {
+  const low = text.toLowerCase();
+  let i = -1;
+  for (const m of marks) { i = low.indexOf(m); if (i >= 0) break; }
+  if (i < 0) { const fl = SI.fold(low); for (const m of marks) { i = fl.indexOf(SI.fold(m)); if (i >= 0) break; } } // typed without diacritics
+  return i < 0 ? '' : text.slice(Math.max(0, i - 50), i + 110).replace(/\s+/g, ' ');
+}
 async function search(q, limit) {
   if (!S) return { total: 0, hits: [] };
-  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-  if (!terms.length) return { total: 0, hits: [] };
-  if (!S.sidx) return { total: 0, hits: [], partial: true, indexed: S.added ? S.added.size : 0, notes: S.meta.size };
-  const found = [];
-  for (const p of S.sidx.query(q)) {
-    if (!S.meta.has(p)) continue; // deleted since
-    const st = Core.stem(p).toLowerCase();
-    found.push({ p, score: terms.some((t) => st.includes(t) || SI.fold(st).includes(t)) ? 0 : 1 });
+  const P = SQ.parse(q);
+  if (P.empty) return { total: 0, hits: [] };
+  const all = [...P.clauses.flat(), ...P.not];
+  if (all.some((t) => TEXT_KINDS.has(t.kind)) && !S.sidx) return { total: 0, hits: [], partial: true, indexed: S.added ? S.added.size : 0, notes: S.meta.size };
+  const t0 = now();
+  let capped = false;
+  // candidate set of each text term (phrases: notes with all its words)
+  const sets = new Map();
+  const inter = (list) => { let acc = null; for (const s of list) { if (!acc) acc = new Set(s); else for (const x of acc) if (!s.has(x)) acc.delete(x); if (!acc.size) break; } return acc || new Set(); };
+  for (const t of all) {
+    if (!TEXT_KINDS.has(t.kind) || sets.has(t)) continue;
+    if (t.kind === 'word') sets.set(t, S.sidx.pathsFor(t.value));
+    else if (t.kind === 'fragment') { const r = S.sidx.pathsWithin(t.value); if (r.capped) capped = true; sets.set(t, r.paths); }
+    else sets.set(t, inter(t.words.map((w) => S.sidx.pathsFor(w))));
   }
-  found.sort((a, b) => a.score - b.score || Core.stem(a.p).localeCompare(Core.stem(b.p)));
+  const tagsOf = (p) => (S.meta.get(p) || {}).tags;
+  // a clause of text terms only narrows by set union; others are checked per note
+  let cand = null;
+  for (const c of P.clauses) {
+    if (!c.every((t) => TEXT_KINDS.has(t.kind))) continue;
+    const u = new Set(); for (const t of c) for (const p of sets.get(t)) u.add(p);
+    if (!cand) cand = u; else for (const p of cand) if (!u.has(p)) cand.delete(p);
+  }
+  if (!cand) cand = new Set([...S.meta.keys()].filter(isMd));
+  const needText = all.some((t) => t.kind === 'phrase');
+  const passes = (p, low, folded) => {
+    const alt = (t) => (TEXT_KINDS.has(t.kind) ? sets.get(t).has(p) && (t.kind !== 'phrase' || low === undefined || SQ.phraseIn(t, low, folded)) : SQ.fieldMatch(t, p, tagsOf(p)));
+    for (const c of P.clauses) if (!c.some(alt)) return false;
+    for (const t of P.not) {
+      if (t.kind === 'phrase') { if (sets.get(t).has(p) && low !== undefined && SQ.phraseIn(t, low, folded)) return false; }
+      else if (alt(t)) return false;
+    }
+    return true;
+  };
+  const marks = SQ.marks(P);
+  const score = (p) => { if (!marks.length) return 1; const st = Core.stem(p).toLowerCase(); return marks.some((m) => SQ.has(st, m)) ? 0 : 1; };
+  const order = (a, b) => a.score - b.score || COLLATE(a.st, b.st);
+  let found = [], more = false, checked = 0;
+  const list = [];
+  for (const p of cand) if (S.meta.has(p)) list.push({ p, score: score(p), st: Core.stem(p) }); // S.meta: not deleted since
+  if (needText) {
+    // everything that needs no text first (path:, tag:, -word…), then read the
+    // remaining candidates, best first, and check the phrases in their text —
+    // at most VERIFY_MAX notes or VERIFY_MS of reading
+    const pre = list.filter((h) => passes(h.p));
+    pre.sort(order);
+    const todo = pre.slice(0, VERIFY_MAX);
+    more = pre.length > todo.length;
+    const tr = now();
+    await pool(todo, IO, async (h) => {
+      if (now() - tr > VERIFY_MS) { h.late = true; more = true; return; }
+      let text;
+      try { text = await fs.promises.readFile(path.join(S.root, h.p), 'utf8'); } catch { return; }
+      const low = SQ.normText(text);
+      if (!passes(h.p, low, /[^\x00-\x7f]/.test(low) ? SI.fold(low) : low)) return;
+      h.ok = true; h.s = snippetOf(text, marks);
+    });
+    found = todo.filter((h) => h.ok);
+    checked = todo.filter((h) => !h.late).length;
+  } else found = list.filter((h) => passes(h.p));
+  found.sort(order);
   const top = found.slice(0, limit);
-  const ft = SI.fold(terms[0]);
-  await pool(top, IO, async (h) => {
-    try {
-      const text = await fs.promises.readFile(path.join(S.root, h.p), 'utf8');
-      const low = text.toLowerCase();
-      let i = low.indexOf(terms[0]);
-      if (i < 0) i = SI.fold(low).indexOf(ft); // typed without diacritics
-      h.s = i < 0 ? '' : text.slice(Math.max(0, i - 50), i + 110).replace(/\s+/g, ' ');
-    } catch { h.s = ''; }
-  });
-  return { total: found.length, hits: top.map(({ p, s }) => ({ p, s })), partial: false, indexed: S.meta.size, notes: S.meta.size };
+  if (!needText) {
+    await pool(top, IO, async (h) => {
+      try { h.s = marks.length ? snippetOf(await fs.promises.readFile(path.join(S.root, h.p), 'utf8'), marks) : ''; } catch { h.s = ''; }
+    });
+  }
+  return { total: found.length, hits: top.map(({ p, s }) => ({ p, s: s || '' })), marks, capped, more, checked, ms: now() - t0, partial: false, indexed: S.meta.size, notes: S.meta.size };
 }
 
 // ---------------- Dataview queries ----------------
@@ -638,6 +698,33 @@ function dvQuery(src, origin) {
 }
 
 // First line in each source note that mentions the target (for backlinks).
+// Notes that name a note (or one of its aliases) without linking to it.
+// Candidates: notes with every word of a name; then whole-word matches outside links.
+async function mentions({ names, exclude = [], limit = 200 }) {
+  if (!S || !S.sidx) return { list: [], partial: true };
+  const t0 = now();
+  const skip = new Set(exclude);
+  const cand = new Set();
+  for (const n of names) {
+    const ws = [...String(n).toLowerCase().matchAll(/[\p{L}\p{N}]+(?:[-._/][\p{L}\p{N}]+)*/gu)].map((m) => m[0]);
+    if (!ws.length || String(n).trim().length < 3) continue;
+    let acc = null;
+    for (const w of ws) { const s = S.sidx.pathsFor(w); if (!acc) acc = s; else for (const p of acc) if (!s.has(p)) acc.delete(p); if (!acc.size) break; }
+    for (const p of acc || []) if (!skip.has(p) && S.meta.has(p) && isMd(p)) cand.add(p);
+  }
+  const list = [];
+  await pool([...cand].slice(0, VERIFY_MAX), IO, async (p) => {
+    let text;
+    try { text = await fs.promises.readFile(path.join(S.root, p), 'utf8'); } catch { return; }
+    const found = Core.findMentions(text, names, 20);
+    if (!found.length) return;
+    const f = found[0], line = text.split('\n')[f.line];
+    list.push({ p, count: found.length, line: f.line, col: f.col, text: f.text, s: line.trim().slice(0, 200) });
+  });
+  list.sort((a, b) => b.count - a.count || COLLATE(Core.stem(a.p), Core.stem(b.p)));
+  return { list: list.slice(0, limit), total: list.length, ms: now() - t0 };
+}
+
 async function snippets(target, sources) {
   const names = [Core.stem(target).toLowerCase(), target.toLowerCase()];
   const out = {};
@@ -657,6 +744,7 @@ const handlers = {
   update: ({ changed }) => update(changed),
   search: ({ q, limit }) => (S ? search(q, limit || 300) : { total: 0, hits: [], partial: true, indexed: 0, notes: 0 }),
   snippets: ({ target, sources }) => (S ? snippets(target, sources) : {}),
+  mentions: (a) => mentions(a),
   dv: ({ q, origin }) => {
     if (!S || !S.snap) return { error: 'The folder is still loading — the query runs as soon as it is ready.', loading: true };
     try { return dvQuery(q, origin); } catch (e) { return { error: e.message }; }

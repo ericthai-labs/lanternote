@@ -52,6 +52,7 @@ const COMPARE = [
   ['Plain Markdown files you own', 'y', 'n', 'y'],
   ['Live preview of plain Markdown, tabs, split panes', 'y', 'v', 'v'],
   ['Tested with 200,000 notes', 'y', 'v', 'v'],
+  ['Phrase search, exclusions, codes found from inside', 'y', 'v', 'v'],
   ['Link graph without a graphics card', 'y', 'v', 'v'],
   ['Command Center + galaxy of your notes', 'y', 'n', 'n'],
   ['Tables, task lists, calendars from queries', 'y', 'v', 'v'],
@@ -121,7 +122,7 @@ const ADS = [
     <div style="position:absolute;left:0;right:0;top:56px;text-align:center">${brand}
       <h1 style="font-size:58px;margin:18px 0 0">Why <em>Lanternote</em>?</h1>
     </div>
-    <div style="position:absolute;left:200px;right:200px;top:210px;--pad:13px">${table(COMPARE, 23)}</div>
+    <div style="position:absolute;left:200px;right:200px;top:200px;--pad:11px">${table(COMPARE, 22)}</div>
     <div style="position:absolute;left:230px;right:230px;bottom:48px;text-align:center">${cmpNote}</div>`],
   ['ad-09-ai-1920x1080', 1920, 1080, `<div class="bg"></div>
     <div style="position:absolute;left:100px;top:210px;width:700px">${brand}
@@ -142,6 +143,12 @@ const ADS = [
       <p class="sub" style="font-size:26px">Live preview hides the marks away from the cursor. Tabs keep many notes open; the right pane shows one while you write another.</p>
     </div>
     <div style="position:absolute;left:170px;right:170px;top:320px">${crop('ad-raw-write-wide.png')}</div>`],
+  ['ad-12-find-1920x1080', 1920, 1080, `<div class="bg"></div>
+    <div style="position:absolute;left:0;right:0;top:66px;text-align:center">${brand}
+      <h1 style="font-size:62px;margin:24px 0 12px">Find the exact words. <em>Read without leaving the page.</em></h1>
+      <p class="sub" style="font-size:26px">"Exact phrases", -exclusions, OR, path:, tag: — and *1133 finds a part number inside a code. Point at a link to preview it.</p>
+    </div>
+    <div style="position:absolute;left:170px;right:170px;top:320px">${crop('ad-raw-find-wide.png')}</div>`],
   ['sq-01-galaxy-1080x1080', 1080, 1080, `
     ${bgImg('ad-raw-galaxy-square.png', '0 -40px', '1080px 1080px')}
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,15,.97) 0%,rgba(5,7,15,.75) 22%,rgba(5,7,15,0) 40%,rgba(5,7,15,0) 80%,rgba(5,7,15,.9) 100%)"></div>

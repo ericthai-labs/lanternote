@@ -1,11 +1,11 @@
 ---
 title: Lanternote — User Guide
-version: 1.22.0
+version: 1.23.0
 ---
 
 # Lanternote — User Guide
 
-*Version 1.22.0. The pictures were taken with version 1.22.0 on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
+*Version 1.23.0. The pictures were taken with version 1.23.0 on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
 
 Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, backlinks, tags, canvases, live queries, tasks, calendars and a link graph. It stays fast on very large folders (measured on 200,000 notes), runs on PCs without a graphics card, and never sends your notes anywhere.
 
@@ -13,6 +13,8 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 
 | | |
 |---|---|
+| **Search that knows codes** | Exact phrases, exclusions, OR, folders, names and tags — and `*1133` finds a part or task number anywhere inside a code. ≈ 30–170 ms on the made-up 139,000-note folder. |
+| **Read without leaving the page** | Point at a link to preview the note, footnotes jump and come back, and the right panel lists the notes that name this one without linking it. |
 | **Live preview** | Write in Markdown and see the result as you type: marks hide away from the cursor, checkboxes click, pictures show, links open. |
 | **Tabs and a right pane** | Several notes open at once, each tab with its own history; read one note on the right while you write another. |
 | **Your vault as a galaxy** | Every star is a note, every arm a folder. Zoom in to read names, click a star to open it. |
@@ -45,6 +47,8 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 | Portable, no installation, no admin rights | ✅ | ❌ account and install / browser | ⚠️ varies |
 | AI assistant can read and edit notes (MCP), with undo | ✅ built in | ⚠️ varies | ⚠️ often through add-ons |
 | Web pictures fetched only when you allow it | ✅ | ⚠️ varies | ⚠️ varies |
+| Search for a fragment inside a word or code | ✅ built in | ⚠️ varies | ⚠️ often through add-ons |
+| Link preview, footnotes, unlinked mentions | ✅ built in | ⚠️ varies | ⚠️ varies |
 
 *The comparison is general: features of other products differ from one product and version to the next. Figures for Lanternote were measured on a 203,000-note folder and on the made-up 139,000-note folder.*
 
@@ -55,9 +59,9 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 | Area | What it holds |
 |---|---|
 | Top bar | ☰ file panel · ‹ › back / forward · **Quick open** · ⌂ Command Center · ✎ read / edit · ⚹ graph · ⟳ reload · ◐ light / dark · ⚙ settings · ⋮ outline panel |
-| Left | **Files** (folder tree), **Search**, **Tags** |
+| Left | **Files** (bookmarks and the folder tree), **Search**, **Tags** |
 | Middle | The open note: callouts, tables, task lists, links |
-| Right | **Outline**, **Backlinks** (notes that link here), **Outgoing links** |
+| Right | **Outline**, **Backlinks** (notes that link here), **Unlinked mentions** (notes that name this one without a link), **Outgoing links** |
 
 The first time a large folder is opened the app reads every note (15–20 s for 200,000 notes); afterwards it opens in 1–2 s.
 
@@ -81,7 +85,21 @@ Type a few letters of the name (they need not be next to each other), ↑↓ to 
 
 ![Search](img/g03-search.png)
 
-All the words must appear, with or without accents; matches are highlighted. `tag:#name` lists the notes with a tag.
+All the words must appear (as the start of a word: `pump` finds *pumps*), with or without accents; matches are highlighted. Codes are split into their parts, so `29-11` and `801-a` both find *29-11-00-710-801-A*.
+
+![Search syntax](img/g03b-search-syntax.png)
+
+| Type | Finds |
+|---|---|
+| `"hydraulic pump"` | the exact phrase, in that order (also across a line break) |
+| `-draft` · `-"old rev"` | leaves out the notes with that word or phrase |
+| `valve OR actuator` | either one |
+| `*1133` | a fragment anywhere inside a word or code: *PW1133G*, *1133-AB* (3 characters or more) |
+| `path:AMM/29` | only notes in that folder (or whose path contains the text) |
+| `title:pump` | the note name contains the text |
+| `tag:#sop` | notes with the tag or a sub-tag (`#sop/qa`) |
+
+Combine them freely: `"hydraulic pump" path:AMM -title:index`. **Search syntax** under the box shows the table; the line above the results says how many notes matched and how long it took. An AI assistant connected over MCP uses the same syntax.
 
 ## 4. Editing — Ctrl+E
 
@@ -90,6 +108,12 @@ All the words must appear, with or without accents; matches are highlighted. `ta
 - **Ctrl+E** switches reading ⇄ editing. Saved as you type; **Undo / Redo / Versions** at the top.
 - Type `[[` to link to a note; rename a note in its title field — links to it are updated.
 - If the file is changed elsewhere while you edit, the app asks which version to keep and never overwrites silently.
+
+### Folding
+
+![Folding](img/g04g-folding.png)
+
+Move the pointer to the left edge of the text: a **▾** appears beside headings, list items, code blocks and tables. Click it to fold the part away (it shows as **…**), click **▸** to open it again. Ctrl+Shift+[ and Ctrl+Shift+] fold and unfold where the cursor is, Ctrl+Alt+[ and Ctrl+Alt+] everything. Only the view changes, never the file. Settings → Editor → **Fold headings and lists**.
 
 ### Live preview
 
@@ -103,6 +127,30 @@ While you edit, Markdown marks (`**`, `#`, `>`, `[[ ]]`, link targets) are hidde
 
 - **Tabs**: Ctrl+T opens a note in a new tab, Ctrl+W closes one, Ctrl+Tab moves between them; Ctrl+click or middle-click any link or file to open it in a new tab. Each tab has its own Back / Forward, and the tabs of each folder come back next time.
 - **Right pane**: Alt+click a link, or right-click a file → *Open in the right pane* (Ctrl+Alt+→ for the note you are on). It has its own tabs and history, reads and edits, ticks tasks, and saves with the same protection as the main pane. Drag the divider to resize; ⇤ moves the note to the main pane.
+
+## 4c. Reading tools
+
+### Link preview
+
+![Link preview](img/g04d-hover-preview.png)
+
+Rest the pointer on a link for a moment and the note it points to appears in a card — just the heading or block when the link points to one. Scroll the card and click its links; Esc or a click elsewhere closes it. While editing, hold **Ctrl** as you point. Settings → Editor → **Preview links on hover**.
+
+### Footnotes
+
+![Footnotes](img/g04e-footnotes.png)
+
+Write `[^1]` in the text and `[^1]: the note` on its own line (indented lines continue it), or `^[a note in place]`. The numbers show raised and the footnotes are listed at the end: click a number to jump to its footnote, ↩ to come back, or point at the number to read it.
+
+### Unlinked mentions
+
+![Unlinked mentions](img/g04f-mentions.png)
+
+Open **Unlinked mentions** in the right panel to see the notes that write this note's name — or one of its `aliases` — without linking it. Only whole words count, never text inside links or code. **Link** turns the first mention in that note into a link and keeps the words as written (`[[Rain garden|rain garden]]`); if that note has changed in the meantime, nothing is written.
+
+### Bookmarks
+
+**☆ Bookmark** in a note's top line (or right-click → *Bookmark*, or the command palette) keeps the note at the top of the Files tab. Drag bookmarks to reorder them; they follow renames. They are kept in the app settings for each folder, so the notes folder itself is not changed.
 
 ## 5. Canvas
 
@@ -279,6 +327,9 @@ Every command in one list: type a few letters, ↑↓, Enter.
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
 | Ctrl+Alt+→ | Open this note in the right pane |
 | Ctrl+click / Alt+click a link | Open in a new tab / in the other pane |
+| Point at a link (Ctrl + point while editing) | Preview the note |
+| Ctrl+Shift+[ / Ctrl+Shift+] (editing) | Fold / unfold where the cursor is |
+| Ctrl+Alt+[ / Ctrl+Alt+] (editing) | Fold / unfold everything |
 | Ctrl+P | Command palette |
 | Ctrl+, | Settings |
 | Ctrl+Shift+D | Light / dark |

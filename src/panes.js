@@ -163,6 +163,7 @@ const Split = (() => {
       linkOptions: (q) => Ed.linkOptions(q), tagOptions: (q) => Ed.tagOptions(q),
       onPasteFiles: (files) => Ed.pasteFiles(files, shown),
       livePreview: Prefs.get('livePreview'),
+      folding: Prefs.get('folding') !== false,
       imageUrl: (src, wiki) => pictureUrl(src, shown, wiki),
       onOpenLink: (link, how) => followLink(link, shown, { ...how, pane: 'split' }),
     });
@@ -305,7 +306,7 @@ const Split = (() => {
     get visible() { return open_(); }, get path() { return shown; }, get mode() { return mode; },
     get list() { return S.list; }, get active() { return S.active; },
     themeChanged() { if (cm) cm.setDark(isDark()); },
-    settingsChanged() { if (cm) { cm.setLivePreview(Prefs.get('livePreview')); cm.view.dispatch({}); } },
+    settingsChanged() { if (cm) { cm.setLivePreview(Prefs.get('livePreview')); cm.setFolding(Prefs.get('folding') !== false); cm.view.dispatch({}); } },
     _cm: () => cm, // for the test driver
   };
 })();

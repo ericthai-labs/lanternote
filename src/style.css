@@ -68,6 +68,11 @@ kbd { font: 11px/1 ui-monospace, Consolas, monospace; padding: 2px 5px; border: 
 .tree .row .nm { overflow: hidden; text-overflow: ellipsis; }
 
 /* search & tags */
+.search-help { margin: 2px 0 6px; font-size: 12px; }
+.search-help summary { cursor: pointer; color: var(--faint); font-size: 11px; }
+.search-help table { border-collapse: collapse; margin: 4px 0; width: 100%; }
+.search-help td { padding: 2px 4px; vertical-align: top; color: var(--muted); }
+.search-help code { font-size: 11px; white-space: nowrap; }
 .result { padding: 6px 6px; border-radius: 6px; cursor: pointer; }
 .result:hover { background: var(--bg3); }
 .result .t { font-weight: 600; font-size: 13px; }
@@ -508,3 +513,42 @@ select.tool { padding: 2px 4px; }
 /* a picture from the internet that is not loaded yet (Settings → Files & links) */
 .web-pic { display: inline-block; padding: 6px 10px; border: 1px dashed var(--muted); border-radius: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 .web-pic:hover { color: var(--accent); border-color: var(--accent); }
+
+/* link preview on hover (hover.js) */
+.hover-card { position: fixed; z-index: 60; width: min(520px, calc(100vw - 16px)); max-height: min(420px, calc(100vh - 16px)); display: flex; flex-direction: column;
+  background: var(--bg); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; }
+.hover-card[hidden] { display: none; }
+.hover-head { display: flex; align-items: baseline; gap: 8px; padding: 7px 12px 6px; background: var(--bg2); border-bottom: 1px solid var(--line); flex: none; min-width: 0; }
+.hover-title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hover-path { font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: auto; }
+.hover-body { overflow: auto; padding: 8px 14px 12px; }
+.hover-body.note { max-width: none; margin: 0; font-size: 13.5px; }
+.hover-body.note h1 { font-size: 1.35em; } .hover-body.note h2 { font-size: 1.2em; } .hover-body.note h3 { font-size: 1.08em; }
+.hover-body .props { display: none; }
+.hover-img { max-width: 100%; max-height: 360px; display: block; margin: auto; }
+
+/* unlinked mentions */
+.um-row { display: flex; align-items: center; gap: 6px; }
+.um-row > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.um-link { padding: 1px 8px; font-size: 11px; }
+
+/* bookmarks (bookmarks.js) */
+.bm-box { margin: 2px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.bm-box summary { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 2px 4px; cursor: pointer; }
+.bm { display: flex; align-items: center; gap: 6px; padding: 3px 6px; }
+.bm.on { background: var(--bg3); }
+.bm-ico { color: var(--accent); font-size: 11px; }
+.bm-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-btn.on { color: var(--accent); }
+
+/* footnotes */
+.note .footnotes { margin-top: 2.2em; padding-top: .6em; border-top: 1px solid var(--line); font-size: .88em; color: var(--muted); }
+.note .footnotes ol { padding-left: 1.6em; }
+.note .fn-ref a, .note .fn-back { color: var(--link); cursor: pointer; text-decoration: none; }
+.note .fn-ref { font-size: .75em; line-height: 0; padding: 0 1px; }
+.note .fn-flash { background: var(--mark); border-radius: 3px; transition: background .4s; }
+
+/* the Files tab: filter and bookmarks stay put, the tree scrolls on its own */
+#pane-files.on { display: flex; flex-direction: column; overflow: hidden; }
+#pane-files .tree { flex: 1; min-height: 0; overflow: auto; }
+#pane-files .bm-box { flex: none; max-height: 34%; overflow: auto; }

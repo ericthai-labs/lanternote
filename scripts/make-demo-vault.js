@@ -249,6 +249,43 @@ recent 8
 \`\`\`
 ` });
 
+// 1.23: footnotes, unlinked mentions, folding, hover previews
+add('02-Areas/Home/Rain garden.md', { title: 'Rain garden', mtime: NOW - 5 * 3600000, tags: ['garden'], fm: { aliases: '[rain bed]' }, body: `# Rain garden
+
+A shallow bed that holds rain water from the roof for a day, then lets it soak away. See the [[Field guide — soil and water]].
+
+## Plants
+- Sedge and rush at the bottom, where water stands longest
+- Iris and fern on the slopes
+- Grasses on the rim
+
+## Upkeep
+Weed in spring, cut back in late autumn, check the inlet after storms.
+` });
+add('04-Library/Field guide — soil and water.md', { title: 'Field guide — soil and water', mtime: NOW - 3 * 3600000, tags: ['guide'], body: `# Field guide — soil and water
+
+Soil that drains in under a day[^drain] suits a [[Rain garden]]; heavy clay needs a gravel layer[^clay]. Measure twice^[once in a dry week, once after rain].
+
+## Drainage test
+1. Dig a hole 30 cm deep.
+2. Fill it with water and let it drain.
+3. Fill it again and time how long the water takes to go[^drain].
+
+## Planting depth
+Set plants at the depth they grew in the pot; mulch 5 cm around them, not against the stems.
+
+## Sources
+The figures come from the notes of the spring workshop.
+
+[^drain]: Less than 24 hours is good; more than 48 hours means the bed should be moved or the soil improved.
+[^clay]: About 10 cm of gravel under 20 cm of sandy topsoil.
+` });
+['Checked the rain garden after the storm: the inlet was blocked by leaves.', 'The rain garden held water for 30 hours, so the drainage test is next.', 'Planted iris on the slope of the rain garden; the rain bed by the shed comes next.']
+  .forEach((line, j) => {
+    const d = new Date(NOW - [3, 9, 17][j] * DAY), day = d.toISOString().slice(0, 10);
+    add(`05-Meetings/${day} garden walk.md`, { title: `${day} garden walk`, mtime: d.getTime(), tags: ['meeting'], body: `# ${day} garden walk\n\n${line}\n\n${para(1)}\n` });
+  });
+
 // write
 let written = 0;
 for (const x of notes) {

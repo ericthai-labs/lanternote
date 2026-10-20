@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   testOpenFile: (f) => ipcRenderer.invoke('test:open-file', f),
   dvQuery: (q, origin) => ipcRenderer.invoke('index:dv', q, origin),
   snippets: (target, sources) => ipcRenderer.invoke('index:snippets', target, sources),
+  mentions: (a) => ipcRenderer.invoke('index:mentions', a),
   graphLayout: (args) => ipcRenderer.invoke('graph:layout', args),
   graphRaster: (args) => ipcRenderer.invoke('graph:raster', args),
   graphPutLayout: (args) => ipcRenderer.invoke('graph:putLayout', args),

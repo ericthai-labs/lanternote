@@ -139,10 +139,52 @@ function renderWiki(tok) {
   return `<a class="internal" data-path="${esc(p)}" data-sub="${esc(sub)}" title="${esc(p)}">${esc(label || stem(p))}</a>`;
 }
 
+// footnotes: [^id] … [^id]: text (indented lines continue it) and ^[inline text].
+// Each renderMarkdown() call (embeds too) collects its own; the list is added at its end.
+const fnStack = [];
+const fnNow = () => fnStack[fnStack.length - 1];
+function footnotesHtml(st) {
+  const ids = [...st.order, ...[...st.defs.keys()].filter((id) => !st.order.includes(id))];
+  if (!ids.length) return '';
+  return '<section class="footnotes"><ol>' + ids.map((id) => {
+    const d = st.defs.get(id);
+    return `<li data-fn-def="${esc(id)}">${d != null ? marked.parseInline(d) : '<span class="muted">(no text for this footnote)</span>'}${st.order.includes(id) ? ` <a class="fn-back" data-fn-back="${esc(id)}" title="Back to the text">↩</a>` : ''}</li>`;
+  }).join('') + '</ol></section>';
+}
+
 marked.use({
   gfm: true,
   breaks: true,
   extensions: [
+    {
+      name: 'footnoteDef', level: 'block',
+      start(src) { const m = /^\[\^[^\]\s]+\]:/m.exec(src); return m ? m.index : undefined; },
+      tokenizer(src) {
+        const m = /^\[\^([^\]\s]+)\]:[ \t]*([^\n]*(?:\n(?:[ ]{2,}|\t)[^\n]*)*)(?:\n|$)/.exec(src);
+        if (!m) return;
+        const st = fnNow();
+        if (st && !st.defs.has(m[1])) st.defs.set(m[1], m[2].replace(/\n[ \t]+/g, ' ').trim());
+        return { type: 'footnoteDef', raw: m[0] };
+      },
+      renderer() { return ''; },
+    },
+    {
+      name: 'footnoteRef', level: 'inline',
+      start(src) { const i = src.search(/\[\^|\^\[/); return i < 0 ? undefined : i; },
+      tokenizer(src) {
+        let m = /^\[\^([^\]\s]+)\](?!:)/.exec(src);
+        if (m) return { type: 'footnoteRef', raw: m[0], id: m[1] };
+        m = /^\^\[([^\]\n]+)\]/.exec(src);
+        if (m) { const st = fnNow(); const id = 'inline-' + (st ? ++st.inline : 0); if (st) st.defs.set(id, m[1]); return { type: 'footnoteRef', raw: m[0], id }; }
+      },
+      renderer(t) {
+        const st = fnNow();
+        if (!st) return esc(t.raw);
+        if (!st.order.includes(t.id)) st.order.push(t.id);
+        const n = st.order.indexOf(t.id) + 1, d = st.defs.get(t.id);
+        return `<sup class="fn-ref"><a data-fn="${esc(t.id)}" title="${esc(d != null ? d.replace(/[*_`[\]]/g, '') : 'No text for this footnote')}">${n}</a></sup>`;
+      },
+    },
     {
       name: 'wikilink', level: 'inline',
       start(src) { const i = src.indexOf('[['); if (i < 0) return; return i > 0 && src[i - 1] === '!' ? i - 1 : i; },
@@ -232,11 +274,17 @@ function sectionOf(body, heading) {
 function renderMarkdown(p, depth = 0, sub = '') {
   const { fm, body } = splitFm(V.text.get(p) || '');
   stack.push({ from: p, depth });
+  // footnote texts from the whole note, so an embedded section still has them
+  const fn = { defs: new Map(), order: [], inline: 0 };
+  if (body.includes('[^')) for (const m of body.matchAll(/^\[\^([^\]\s]+)\]:[ \t]*([^\n]*(?:\n(?:[ ]{2,}|\t)[^\n]*)*)/gm)) if (!fn.defs.has(m[1])) fn.defs.set(m[1], m[2].replace(/\n[ \t]+/g, ' ').trim());
+  fnStack.push(fn);
   try {
     const src = sub ? sectionOf(body, sub) : body;
     const clean = src.replace(/\s\^[\w-]+[ \t]*$/gm, ''); // hide ^block-ids
-    return (depth === 0 && fm ? renderProps(fm) : '') + marked.parse(clean);
+    const html = marked.parse(clean);
+    return (depth === 0 && fm ? renderProps(fm) : '') + html + footnotesHtml(fn);
   } finally {
+    fnStack.pop();
     stack.pop();
   }
 }
@@ -345,7 +393,7 @@ async function openNote(p, sub = '', { push = true } = {}) {
   const mt = V.mtimes[V.idx.get(p)];
   const mod = mt ? new Date(mt).toLocaleString() : '';
   art.innerHTML = sanitize(
-    `<div class="crumbs"><span>${esc(dir ? dir.split('/').join(' / ') : V.name)}</span><span>${words.toLocaleString()} words</span>${mod ? `<span>Modified ${esc(mod)}</span>` : ''}<button class="link" data-reveal>Show in folder</button>${KanbanView.raw.has(p) ? '<button class="link" data-board>Board view</button>' : ''}</div>` +
+    `<div class="crumbs"><span>${esc(dir ? dir.split('/').join(' / ') : V.name)}</span><span>${words.toLocaleString()} words</span>${mod ? `<span>Modified ${esc(mod)}</span>` : ''}<button class="link" data-reveal>Show in folder</button>${Bookmarks.button(p)}${KanbanView.raw.has(p) ? '<button class="link" data-board>Board view</button>' : ''}</div>` +
     `<div class="inline-title">${esc(stem(p))}</div>` + renderMarkdown(p)
   );
   art.hidden = false;
@@ -354,7 +402,7 @@ async function openNote(p, sub = '', { push = true } = {}) {
   g('main').scrollTop = 0;
   if (sub) scrollToSub(sub);
   document.title = stem(p) + ' — Lanternote';
-  markTree();
+  markTree(); Bookmarks.syncButton();
   renderSide();
   updateNav(); Tabs.sync();
   window.api.setSetting('lastNote:' + V.name, p);
@@ -531,8 +579,83 @@ function renderSide() {
     if (current !== target) return;
     g('backlinks').querySelectorAll('[data-snip]').forEach((el) => { const v = snips[el.dataset.snip]; if (v) el.textContent = v; });
   }).catch(() => {});
+  if (g('mentionsBox').open) renderMentions(); else { g('mentions').innerHTML = ''; g('umCount').textContent = ''; }
   if (view === 'graph' && Graph.mode === 'local') Graph.show('local', current);
 }
+
+// ---------------- unlinked mentions ----------------
+// Notes that write this note's name (or an alias from its front matter) without
+// linking it. Looked up only while the section is open; "Link" turns the first
+// mention in that note into [[Name]] (or [[Name|text as written]]).
+let mentionSeq = 0;
+function mentionNames(p) {
+  const { fm } = splitFm(V.text.get(p) || '');
+  const al = fm && (fm.aliases || fm.alias);
+  return [stem(p), ...(Array.isArray(al) ? al : al ? [al] : [])].map(String).filter((n) => n.trim().length >= 3);
+}
+async function renderMentions() {
+  const p = current, my = ++mentionSeq, box = g('mentions');
+  if (!p || !isNote(p)) { box.innerHTML = ''; g('umCount').textContent = ''; return; }
+  const names = mentionNames(p);
+  if (!names.length) { box.innerHTML = '<div class="muted small">The name is too short to look for</div>'; return; }
+  box.innerHTML = '<div class="muted small">Looking…</div>';
+  let r;
+  try { r = await window.api.mentions({ names, exclude: [p, ...backLinks(p)], limit: SIDE_MAX }); } catch (e) { if (my === mentionSeq) box.innerHTML = `<div class="muted small">${esc(e.message)}</div>`; return; }
+  if (my !== mentionSeq || current !== p) return;
+  if (r.partial) { box.innerHTML = '<div class="muted small">Available when the search index is ready</div>'; return; }
+  g('umCount').textContent = r.total ? r.total.toLocaleString() : '';
+  box.innerHTML = r.list.length
+    ? r.list.map((m) => `<div class="bl um" data-path="${esc(m.p)}"><div class="um-row"><span>${esc(stem(m.p))}</span>${m.count > 1 ? `<span class="count">${m.count}</span>` : ''}<button class="small-btn um-link" data-um="${esc(m.p)}" data-line="${m.line}" data-col="${m.col}" data-text="${esc(m.text)}" title="Link the first mention in that note">Link</button></div><div class="s">${esc(m.s)}</div></div>`).join('')
+      + (r.total > r.list.length ? `<div class="muted small">… and ${(r.total - r.list.length).toLocaleString()} more</div>` : '')
+    : '<div class="muted small">No unlinked mentions</div>';
+}
+async function linkMention(btn) {
+  const p = btn.dataset.um, target = current;
+  const line = +btn.dataset.line, col = +btn.dataset.col, was = btn.dataset.text;
+  let cur;
+  try { cur = await window.api.loadNote(p); } catch (e) { toast('Could not read the note: ' + e.message); return; }
+  // the mention must still be where it was found
+  const found = Core.findMentions(cur.text, mentionNames(target), 200).find((m) => m.line === line && m.col === col && m.text === was);
+  if (!found) { toast('That note has changed — the list is refreshed'); renderMentions(); return; }
+  const lines = cur.text.split('\n');
+  const name = stem(target);
+  // the shortest link that still finds this note from there
+  const ref = resolve(name, p) === target ? name : target.replace(/\.(md|markdown)$/i, '');
+  const link = was === ref ? `[[${ref}]]` : `[[${ref}|${was}]]`;
+  lines[line] = lines[line].slice(0, col) + link + lines[line].slice(col + was.length);
+  const text = lines.join('\n');
+  const res = await window.api.saveNote(p, text, cur.mtime);
+  if (res.conflict) { toast('The note changed on disk — try again'); return; }
+  cacheText(p, text);
+  toast(`Linked in ${stem(p)}`);
+  btn.closest('.um').remove();
+}
+g('mentionsBox').addEventListener('toggle', () => { if (g('mentionsBox').open) renderMentions(); });
+
+// footnote numbers jump to their text at the end of the note, ↩ jumps back
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-fn], a[data-fn-back]');
+  if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  // the same rendered note: an embed has its own footnotes, so does the hover card
+  const scope = (x) => x.closest('.embed, .hover-body, .note');
+  const here = scope(a);
+  if (!here) return;
+  const id = a.dataset.fn != null ? a.dataset.fn : a.dataset.fnBack;
+  const sel = a.dataset.fn != null ? `[data-fn-def="${CSS.escape(id)}"]` : `a[data-fn="${CSS.escape(id)}"]`;
+  const to = [...here.querySelectorAll(sel)].find((x) => scope(x) === here);
+  if (!to) return;
+  to.scrollIntoView({ block: 'center' });
+  const li = to.closest('li, sup') || to;
+  li.classList.add('fn-flash'); setTimeout(() => li.classList.remove('fn-flash'), 1200);
+}, true);
+g('mentions').addEventListener('click', (e) => {
+  const b = e.target.closest('.um-link');
+  if (!b) return;
+  e.stopPropagation(); e.preventDefault();
+  b.disabled = true;
+  linkMention(b).catch((err) => toast('Could not link: ' + err.message)).finally(() => { b.disabled = false; });
+});
 
 // ---------------- file tree ----------------
 // Folders are drawn only when opened, and long folders in pages, so the
@@ -644,7 +767,7 @@ async function runSearch() {
   const my = ++searchSeq;
   if (!q) { box.innerHTML = ''; g('searchInfo').textContent = ''; return; }
   const tagM = /^tag:#?(\S+)$/i.exec(q);
-  let hits = [], total = 0, note = '';
+  let hits = [], total = 0, note = '', marks = [];
   if (tagM) {
     const want = tagM[1].toLowerCase();
     const set = new Set();
@@ -656,12 +779,24 @@ async function runSearch() {
     let r;
     try { r = await window.api.search(q, 300); } catch (e) { if (my === searchSeq) g('searchInfo').textContent = 'Search failed: ' + e.message; return; }
     if (my !== searchSeq) return;
-    hits = r.hits; total = r.total;
+    hits = r.hits; total = r.total; marks = r.marks || [];
     if (r.partial) note = ` — index not complete (${r.indexed.toLocaleString()} of ${r.notes.toLocaleString()} notes searched)`;
+    else {
+      if (r.more) note += ` — phrases checked in the best ${(r.checked || 0).toLocaleString()} candidate notes only; add a word, path: or tag: to narrow it`;
+      if (r.capped) note += ' — the *fragment matches too many words; type more of it';
+      if (r.ms !== undefined) note += ` · ${r.ms.toLocaleString()} ms`;
+    }
   }
   g('searchInfo').textContent = total.toLocaleString() + (total === 1 ? ' note' : ' notes') + (total > 300 ? ' (first 300 shown)' : '') + note;
-  const terms = tagM ? [] : q.toLowerCase().split(/\s+/).filter(Boolean);
-  const hl = (s) => { let h = esc(s); for (const t of terms) h = h.replace(new RegExp(esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), (m) => `<mark>${m}</mark>`); return h; };
+  const terms = marks.filter((t) => t.length > 1);
+  // one pass over the plain text, longest terms first, so a mark never lands inside another
+  const markRe = terms.length ? new RegExp([...terms].sort((a, b) => b.length - a.length).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')).join('|'), 'gi') : null;
+  const hl = (s) => {
+    if (!markRe) return esc(s);
+    let h = '', i = 0;
+    for (const m of s.matchAll(markRe)) { if (!m[0]) continue; h += esc(s.slice(i, m.index)) + `<mark>${esc(m[0])}</mark>`; i = m.index + m[0].length; }
+    return h + esc(s.slice(i));
+  };
   box.innerHTML = hits.map(({ p, s }) =>
     `<div class="result" data-path="${esc(p)}"><div class="t">${hl(stem(p))}</div><div class="p">${esc(dirOf(p))}</div>${s ? `<div class="s">…${hl(s)}…</div>` : ''}</div>`).join('');
 }
@@ -768,6 +903,7 @@ function afterIndex() {
   g('vaultName').textContent = V.name;
   g('vaultName').title = V.root;
   renderTree(); renderTags();
+  Bookmarks.load();
   if (g('searchInput').value) runSearch();
   setStatus(`${V.notes.length.toLocaleString()} notes · ${(V.edges.length / 2).toLocaleString()} links`);
   Graph.invalidate();
@@ -1000,6 +1136,7 @@ window.api.onIndexEvent((m) => {
     applyChange(m.result); // edits made while the app was closed
   } else if (m.type === 'search-ready') {
     if (g('searchInput').value) runSearch();
+    if (g('mentionsBox').open) renderMentions(); // it said "available when the search index is ready"
     if (!m.full) toast('Search covers only part of this very large folder (memory limit).');
   }
 });

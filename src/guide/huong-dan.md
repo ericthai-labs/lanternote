@@ -35,6 +35,9 @@ Màn hình gồm ba cột:
 - Các cú pháp Markdown mở rộng đều hiển thị được: `[[Ghi chú#Mục]]`, `![[Ghi chú]]` (nhúng), `![[ảnh.png]]`, `#tag`, callout `> [!warning]`, `==tô sáng==`, `%%ghi chú ẩn%%`, bảng, danh sách việc, sơ đồ ` ```mermaid `, và phần thuộc tính (front matter) ở đầu ghi chú.
 - **Checkbox** trong danh sách việc bấm được ngay ở chế độ đọc — thay đổi được ghi vào file.
 - **Show in folder** ở đầu ghi chú mở vị trí file trong File Explorer.
+- **Xem trước khi rê chuột**: để con trỏ lên một liên kết khoảng nửa giây → hiện một thẻ nhỏ có nội dung ghi chú đó (hoặc đúng mục / khối mà liên kết trỏ tới). Cuộn và bấm link trong thẻ được. Khi đang sửa thì **giữ Ctrl** trong lúc rê. **Esc** hoặc bấm ra ngoài để đóng. Tắt: **Cài đặt → Editor → Preview links on hover**.
+- **Chú thích cuối trang (footnote)**: viết `[^1]` trong câu và `[^1]: nội dung` ở dòng riêng (dòng thụt vào phía dưới là phần tiếp theo), hoặc viết liền `^[nội dung]`. Số chú thích hiện nhỏ phía trên chữ, danh sách chú thích nằm cuối ghi chú; **bấm số** để nhảy xuống, **↩** để quay lại, **rê chuột** lên số để đọc nhanh.
+- **Unlinked mentions** (cột phải, bấm để mở): các ghi chú **có viết tên** ghi chú này (hoặc một tên trong `aliases:` ở front matter) **mà chưa gắn link**. Chỉ tính trọn từ ("Pump" không khớp "Pumps"), bỏ qua chữ nằm trong link và code. Nút **Link** biến chỗ nhắc đầu tiên trong ghi chú đó thành liên kết, giữ nguyên chữ như đã viết (`[[Tên|chữ đã viết]]`); nếu ghi chú đó vừa bị sửa ở nơi khác thì không ghi gì.
 
 ### Xem ảnh
 
@@ -60,7 +63,20 @@ Mẹo tìm kiếm:
 - Tìm theo **từ và đầu từ**: `pump` ra cả "pumps", "pumping".
 - **Mã tài liệu** tìm được theo từng đoạn: `29-11`, `801-a` đều ra "AMM 29-11-00-710-801-A".
 - Nhiều từ = ghi chú phải chứa **tất cả** các từ đó.
-- Không tìm được đoạn chữ nằm *giữa* một từ (gõ `draulic` sẽ không ra "hydraulic").
+
+Cú pháp tìm nâng cao (kết hợp tuỳ ý; bấm **Search syntax** dưới ô tìm để xem nhanh):
+
+| Gõ | Tìm |
+|---|---|
+| `"hydraulic pump"` | đúng **cụm từ** đó, theo đúng thứ tự (xuống dòng giữa hai từ vẫn khớp) |
+| `-draft` · `-"old rev"` | **bỏ** các ghi chú có từ / cụm từ đó |
+| `valve OR actuator` | ghi chú có **một trong hai** |
+| `*1133` | đoạn chữ nằm **giữa từ hoặc mã** — ra "PW1133G", "1133-AB" (gõ ít nhất 3 ký tự) |
+| `path:AMM/29` | chỉ trong **thư mục** đó (hoặc đường dẫn chứa chữ đó) |
+| `title:pump` | **tên ghi chú** có chữ đó |
+| `tag:#sop` | ghi chú có tag (kể cả tag con `#sop/qa`) |
+
+Ví dụ: `"hydraulic pump" path:AMM -title:index` · `*1133 OR *1135 tag:#ata/29`. Dòng kết quả cho biết số ghi chú và thời gian tìm. Kết nối AI (MCP) dùng cùng cú pháp.
 
 ## 4. Soạn thảo
 
@@ -80,6 +96,10 @@ Nhấn **Ctrl+E** (hoặc nút ✎) để chuyển giữa **đọc** và **sửa
 | Ctrl+Enter | Tạo / đánh dấu việc cần làm `- [ ]` ⇄ `- [x]` |
 | Ctrl+F | Tìm / thay thế trong ghi chú đang sửa |
 | Tab / Shift+Tab | Thụt / bỏ thụt dòng |
+| Ctrl+Shift+[ / Ctrl+Shift+] | Gập / mở mục, mục danh sách, khối code hoặc bảng có con trỏ |
+| Ctrl+Alt+[ / Ctrl+Alt+] | Gập / mở tất cả |
+
+**Gập mục**: đưa chuột sang lề trái của văn bản sẽ thấy dấu **▾** cạnh tiêu đề, mục danh sách, khối code, bảng — bấm để gập lại (hiện **…**), bấm **▸** để mở. Chỉ thay đổi cách hiển thị, **file không đổi**. Tắt: **Cài đặt → Editor → Fold headings and lists**.
 
 ### Live preview (xem trước khi sửa)
 
@@ -114,6 +134,7 @@ Khi sửa, các ký hiệu Markdown (`**`, `#`, `>`, `[[ ]]`, địa chỉ link�
 ## 5. Quản lý ghi chú và thư mục
 
 - **Ghi chú mới**: **Ctrl+N**. Vị trí mặc định là thư mục của ghi chú đang mở (đổi trong Cài đặt).
+- **Bookmarks** (ghim ghi chú hay dùng): bấm **☆ Bookmark** ở dòng đầu ghi chú, chuột phải → **Bookmark**, hoặc Command palette → *Bookmark / remove bookmark for this note*. Các ghi chú ghim hiện ở đầu tab Files; **kéo** để đổi thứ tự, bấm lại ★ để bỏ. Đổi tên ghi chú thì ghim đi theo. Danh sách lưu trong cài đặt của app theo từng thư mục — **không ghi gì vào thư mục ghi chú**.
 - **Menu chuột phải** trên cây thư mục, kết quả tìm kiếm hoặc backlinks: mở, sửa, tạo ghi chú mới, **đổi tên**, **di chuyển sang thư mục khác**, hiện trong Explorer, **xoá**.
 - **Đổi tên / di chuyển** tự cập nhật mọi liên kết `[[...]]` và `[...](...)` đang trỏ tới ghi chú đó (có thể tắt trong Cài đặt).
 - **Xoá** chỉ chuyển vào **Thùng rác** của Windows — lấy lại được.
@@ -303,7 +324,7 @@ Trợ lý AI hỗ trợ **MCP** (Claude Code, Claude Desktop…) có thể làm 
 | Mục | Chỉnh được |
 |---|---|
 | Appearance | Giao diện sáng / tối / theo Windows, cỡ chữ, độ rộng dòng, font, màu nhấn |
-| Editor | Ghi chú mở ở chế độ nào, thời gian chờ tự lưu, kiểm tra chính tả, tô dòng đang sửa |
+| Editor | Ghi chú mở ở chế độ nào, thời gian chờ tự lưu, kiểm tra chính tả, gập mục, xem trước khi rê chuột lên link, tô dòng đang sửa, live preview |
 | Files & links | Nơi đặt ghi chú mới và ảnh dán vào, cập nhật liên kết khi đổi tên, hỏi trước khi xoá, **thư mục bỏ qua** |
 | Daily notes | Thư mục, cách đặt tên (`YYYY-MM-DD`, `ddd`…), nội dung mẫu (`{{date}}`, `{{time}}`) |
 | Command Center | Ghi chú dùng làm bố cục, kiểu nền, tốc độ quay của thiên hà |
@@ -333,6 +354,8 @@ Trợ lý AI hỗ trợ **MCP** (Claude Code, Claude Desktop…) có thể làm 
 | Ctrl+Tab / Ctrl+Shift+Tab | Tab sau / trước |
 | Ctrl+Alt+→ | Mở ghi chú đang xem ở khung phải |
 | Ctrl+bấm / Alt+bấm link | Mở ở tab mới / khung bên kia |
+| Rê chuột lên link (khi sửa: giữ Ctrl) | Xem trước ghi chú |
+| Ctrl+Shift+[ / ] · Ctrl+Alt+[ / ] (khi sửa) | Gập / mở chỗ con trỏ · gập / mở tất cả |
 | Ctrl+\\ / Ctrl+Shift+\\ | Ẩn/hiện cột trái / cột phải |
 | Ctrl+Shift+D | Sáng / tối |
 | Ctrl+R | Nạp lại thư mục |

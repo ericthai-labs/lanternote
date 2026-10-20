@@ -8,6 +8,7 @@ Always run them on **throw-away folders**, never on real notes — they create, 
 ```bash
 node tests/mcp.js        # AI connection (MCP), 41 checks, no window needed
 node tests/index-cache.js # index cache survives closing during a slow open; instant open, 8 checks, no window needed
+node tests/search.js      # search syntax: phrases, -exclude, OR, *fragments, path: / title: / tag:, 28 checks, no window needed
 node tests/run-all.js    # every UI scenario below, on fresh folders in the temp directory
 ```
 
@@ -27,6 +28,11 @@ On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs bot
 | `undo-redo.js` (5 steps) | any folder with `Home.md` | `node scripts/drive.js <folder> tests/undo-redo.js` |
 | `tabs-split.js` (19 steps) | as `editing.js` | `TV=<folder> node scripts/drive.js <folder> tests/tabs-split.js` |
 | `live-preview.js` (13 steps) | as `editing.js` | `TV=<folder> node scripts/drive.js <folder> tests/live-preview.js` |
+| `hover-preview.js` (12 steps) | as `editing.js` | `TV=<folder> node scripts/drive.js <folder> tests/hover-preview.js` |
+| `mentions.js` (10 steps) | as `editing.js`; adds its own notes | `TV=<folder> node scripts/drive.js <folder> tests/mentions.js` |
+| `bookmarks.js` (12 steps) | as `editing.js` | `TV=<folder> node scripts/drive.js <folder> tests/bookmarks.js` |
+| `footnotes.js` (12 steps) | as `editing.js`; adds its own notes | `TV=<folder> node scripts/drive.js <folder> tests/footnotes.js` |
+| `folding.js` (9 steps) | as `editing.js`; adds its own note | `TV=<folder> node scripts/drive.js <folder> tests/folding.js` |
 | `canvas.js` (17 steps) | made by `node tests/make-canvas-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/canvas.js` |
 | `dataview.js` (15 steps) | made by `node tests/make-dv-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/dataview.js` |
 | `kanban.js` (25 steps) | made by `node tests/make-kanban-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/kanban.js` |
@@ -35,6 +41,7 @@ On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs bot
 | `open-file.js` (6 steps) | as `editing.js` | `LANTERNOTE_TEST=1 TV=<folder> node scripts/drive.js <folder> tests/open-file.js` |
 | `indexer-recovery.js` (4 steps) | the folder from `make-dv-vault.js` | `LANTERNOTE_TEST=1 TV=<folder> node scripts/drive.js <folder> tests/indexer-recovery.js` |
 | `mcp.js` (41 steps, no `drive.js`) | makes its own temporary folder and settings | `node tests/mcp.js` · packaged: `MCP_CMD='["<win-unpacked>/Lanternote.exe","<win-unpacked>/resources/app.asar/mcp/lanternote-mcp.js"]' MCP_ENV='{"ELECTRON_RUN_AS_NODE":"1"}' node tests/mcp.js` |
+| `search.js` (28 steps, no `drive.js`) | makes its own temporary folder and cache | `node tests/search.js` |
 | `index-cache.js` (8 steps, no `drive.js`) | makes its own temporary folder (20,000 notes) and cache | `node tests/index-cache.js` |
 | `map-weak-pc.js` | a large folder (read only) | `WEAK=1 node scripts/drive.js <folder> tests/map-weak-pc.js` |
 
