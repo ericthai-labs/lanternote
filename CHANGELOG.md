@@ -2,6 +2,25 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.25.0
+
+### Added
+- **Document status.** Read from a note's front matter: `status` / `state` (current, superseded, obsolete, withdrawn, archived, draft…), `superseded_by` / `replaced_by`, a review or expiry date (`review_due`, `next_review`, `expires`…) and `revision`. A superseded document shows a warning at the top with a link to its replacement, is dimmed and struck through in the file list, and comes last in search and quick open; labels (⚠ superseded, ✎ draft, ⏰ review due, ✓ revision) show in the note's top line, search results and quick open. Settings → Files & links → Show document status.
+- **Copy selection as citation** (Ctrl+Shift+C, also in the command palette and the File menu), in reading and editing view: the selected text as a quote, followed by a link to the note and the heading it is under, the document id, revision and effective date from the front matter, a warning if the document is superseded, and the date it was copied.
+- The AI connection's `search` tool returns the document status (current / superseded / draft, review overdue, revision) and lists superseded documents last.
+
+## 1.24.0
+
+### Added
+- **Table view files (`.base`).** A YAML file that describes one or more table views of the notes: `filters` (an expression, or nested `and` / `or` / `not`), `formulas` (computed columns), `properties` (`displayName`), and `views` with `order`, `sort`, `groupBy`, `limit` and `summaries` (Sum, Average, Min, Max, Median, Stddev, Range, Earliest, Latest, Checked, Unchecked, Empty, Filled, Unique, or a custom formula over `values`). Views of one file show as tabs.
+- **Embed a view in a note** with `![[Reports.base]]` or `![[Reports.base#View name]]`, or write the YAML in a ```` ```base ```` block. Inside an embed, `this` is the note that holds it, so one view file embedded in many notes filters for each of them (`list(aircraft).contains(this)`, `file.hasLink(this)`). Tables refresh when notes or the view file change; names in a table open the note.
+- **View files in the file list** (▦), the quick switcher and on their own page, where `this` is the view file; Ctrl+E edits the YAML.
+- **The expression language**: `note.x` / bare front matter names, `file.*` (`name`, `basename`, `path`, `folder`, `ext`, `size`, `ctime`, `mtime`, `tags`, `links` including front matter links, `backlinks`, `properties`), `formula.x`; `file.hasTag()` (nested tags count), `file.inFolder()`, `file.hasLink()`, `file.hasProperty()`; `+ - * / %`, comparisons, `&& || !`; dates with durations (`date + "1M"`, `today() - "7d"`, date minus date); `if`, `date`, `duration`, `link`, `list`, `number`, `min`, `max`, `now`, `today`; text, number, list (`filter`, `map`, `reduce` with `value` / `index` / `acc`), date and regular-expression methods. A formula error is shown above the table instead of stopping it; YAML and syntax errors are shown in its place.
+- Views run in the background indexer like queries: a related-notes view over 20,000 notes takes about 0.1 s.
+
+### Fixed
+- **Selected text was hard to see while editing**: the selection colour was almost the colour of the page, and on the cursor's line the line tint covered it completely. The selection now uses a stronger amber in both themes, and the cursor line is not tinted while text is selected.
+
 ## 1.23.0
 
 ### Added

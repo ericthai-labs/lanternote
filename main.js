@@ -482,6 +482,7 @@ if (process.env.LANTERNOTE_TEST) ipcMain.handle('test:crash-indexer', async () =
 // test hook: a file opened from Explorer while the app runs (as second-instance does)
 if (process.env.LANTERNOTE_TEST) ipcMain.handle('test:open-file', async (_e, f) => { pendingOpen = f; win.webContents.send('menu', 'pending-open'); });
 ipcMain.handle('index:dv', async (_e, q, origin) => ask('dv', { q, origin }));
+ipcMain.handle('index:base', async (_e, a) => ask('base', a || {}));
 ipcMain.handle('index:snippets', async (_e, target, sources) => ask('snippets', { target, sources }));
 ipcMain.handle('index:mentions', async (_e, a) => ask('mentions', a));
 ipcMain.handle('vault:last', async () => {
@@ -568,6 +569,7 @@ function buildMenu() {
       { label: 'New note from template…', click: send('new-from-template') },
       { label: 'Insert template', accelerator: 'Alt+E', click: send('insert-template') },
       { label: 'Toggle reading / editing', accelerator: 'CmdOrCtrl+E', click: send('toggle-edit') },
+      { label: 'Copy selection as citation', accelerator: 'CmdOrCtrl+Shift+C', click: send('cite') },
       { label: 'Command palette…', accelerator: 'CmdOrCtrl+P', click: send('palette') },
       { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: send('settings') },
       { type: 'separator' },

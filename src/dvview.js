@@ -7,7 +7,8 @@
 const DvView = (() => {
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  // turn every ```dataview code block under root into a live result
+  // turn every ```dataview code block under root into a live result,
+  // and every table view (`![[x.base]]` embeds, ```base blocks) into its table
   function mount(root, origin) {
     root.querySelectorAll('pre > code.language-dataview').forEach((code) => {
       const box = document.createElement('div');
@@ -17,7 +18,59 @@ const DvView = (() => {
       code.parentElement.replaceWith(box);
       run(box);
     });
+    root.querySelectorAll('pre > code.language-base').forEach((code) => {
+      const box = document.createElement('div');
+      box.className = 'base-embed';
+      box.dataset.src = code.textContent;
+      box.dataset.origin = origin || '';
+      code.parentElement.replaceWith(box);
+    });
+    root.querySelectorAll('.base-embed').forEach((box) => { if (!box.dataset.origin) box.dataset.origin = origin || ''; runBase(box); });
   }
+
+  // ---- table views (.base) ----
+  async function runBase(box) {
+    if (!box.innerHTML) box.innerHTML = '<div class="muted small">Loading view…</div>';
+    const a = { file: box.dataset.base || null, src: box.dataset.src != null ? box.dataset.src : null, view: box.dataset.view || null, origin: box.dataset.origin || null };
+    let r;
+    try { r = await window.api.baseQuery(a); } catch (e) { r = { error: e.message }; }
+    if (!box.isConnected) return;
+    if (r.loading) { box.innerHTML = `<div class="muted small">${esc(r.error)}</div>`; setTimeout(() => { if (box.isConnected) runBase(box); }, 2000); return; }
+    const page = box.classList.contains('base-page');
+    const title = a.file && !page ? `<a class="internal base-title" data-path="${esc(a.file)}">${esc(a.file.split('/').pop().replace(/\.base$/i, ''))}</a>` : '';
+    if (r.error) { box.innerHTML = `<div class="base-head">${title}</div><div class="dv-error">Table view: ${esc(r.error)}</div>`; return; }
+    const tabs = r.views.length > 1 ? `<span class="base-tabs" role="tablist">${r.views.map((v) => `<button class="base-tab${v === r.view ? ' on' : ''}" data-base-view="${esc(v)}" role="tab">${esc(v)}</button>`).join('')}</span>` : `<span class="base-viewname">${esc(r.view)}</span>`;
+    const count = `<span class="dv-count">${r.total.toLocaleString()} result${r.total === 1 ? '' : 's'}${r.ms != null ? ` · ${r.ms} ms` : ''}</span>`;
+    const note = r.type !== 'table' ? `<div class="muted small">“${esc(r.type)}” layout is shown as a table.</div>` : '';
+    const warn = r.warning ? `<div class="base-warn small">Some values could not be worked out: ${esc(r.warning)}</div>` : '';
+    box.innerHTML = `<div class="base-head">${title}${tabs}${count}</div>${note}${warn}${baseTable(r, a.origin)}`;
+    box.querySelectorAll('[data-vault-src]').forEach((el) => { el.src = vaultUrl(el.getAttribute('data-vault-src')); });
+    box.dispatchEvent(new CustomEvent('dv-done', { bubbles: true, detail: { total: r.total } }));
+  }
+  function baseTable(r, origin) {
+    if (!r.total) return '<div class="dv-empty muted small">No results.</div>';
+    const n = r.columns.length;
+    const heads = r.columns.map((c) => `<th title="${esc(c.id)}">${esc(c.name)}</th>`).join('');
+    const tr = (row) => '<tr>' + row.cells.map((v) => `<td>${cell(v, origin)}</td>`).join('') + '</tr>';
+    let body;
+    if (r.groups) {
+      body = r.groups.map((gr) => `<tr class="base-group"><td colspan="${n}">${gr.key == null || gr.key === '' ? '<span class="dv-null">(empty)</span>' : cell(gr.key, origin)} <span class="dv-count">(${gr.rows.length})</span></td></tr>` + gr.rows.map(tr).join('')).join('');
+    } else body = r.rows.map(tr).join('');
+    const foot = r.summaries && r.summaries.some(Boolean)
+      ? '<tfoot><tr>' + r.summaries.map((x) => `<td>${x ? `<span class="base-sum">${esc(x.name)}</span> ${x.error ? `<span class="dv-null">${esc(x.error)}</span>` : cell(x.value, origin)}` : ''}</td>`).join('') + '</tr></tfoot>'
+      : '';
+    const more = r.truncated ? `<div class="muted small dv-more">Showing the first ${r.rows.length.toLocaleString()} of ${r.total.toLocaleString()} results.</div>` : '';
+    return `<div class="dv-table-wrap"><table class="dv-table base-table"><thead><tr>${heads}</tr></thead><tbody>${body}</tbody>${foot}</table></div>${more}`;
+  }
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-base-view]');
+    if (!t) return;
+    const box = t.closest('.base-embed');
+    if (!box) return;
+    e.preventDefault(); e.stopPropagation();
+    box.dataset.view = t.dataset.baseView;
+    runBase(box);
+  }, true);
   async function run(box) {
     if (!box.innerHTML) box.innerHTML = '<div class="muted small">Running query…</div>';
     let r;
@@ -33,7 +86,7 @@ const DvView = (() => {
   let timer = 0;
   function refresh(root) {
     clearTimeout(timer);
-    timer = setTimeout(() => (root || document).querySelectorAll('.dv').forEach(run), 300);
+    timer = setTimeout(() => { const r = root || document; r.querySelectorAll('.dv').forEach(run); r.querySelectorAll('.base-embed').forEach(runBase); }, 300);
   }
 
   // ---- values, formatted the way Dataview shows them ----

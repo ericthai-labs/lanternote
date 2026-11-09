@@ -5,7 +5,8 @@
 # Lanternote
 
 **A fast, private desktop app for very large folders of Markdown notes.**<br>
-Read, edit, search, query and map 200,000 notes on Windows, macOS or Linux — no account, no cloud, no graphics card needed.
+Read, edit, search, query and map 240,000 notes on Windows, macOS or Linux — no account, no cloud, no graphics card needed.<br>
+**New in 1.25:** table views in `.base` files · document status (superseded, draft, review due) · copy as citation (`Ctrl+Shift+C`).
 
 [![Release](https://img.shields.io/github/v/release/ericthai-labs/lanternote?color=f0b541&label=release)](https://github.com/ericthai-labs/lanternote/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-0f1422)](#download)
@@ -25,10 +26,11 @@ Read, edit, search, query and map 200,000 notes on Windows, macOS or Linux — n
 
 ## Why Lanternote
 
-- **Built for size.** Tested on a real library of 190,000+ notes and 2.5 million links: it reopens in 1–2 seconds and searches in milliseconds.
+- **Built for size.** Tested on a real library of 240,000 notes and 3.1 million links: it reopens in about 2 seconds and searches in milliseconds.
 - **Runs on any PC.** The link graph and the galaxy are drawn without a graphics card. Portable: one `.exe`, no installation, no admin rights.
 - **Your files stay yours.** Plain `.md` files in a folder you choose. Nothing is uploaded, nothing phones home, everything works offline.
-- **More than a reader.** Live queries, task lists, calendars, Kanban boards, canvases and a Command Center page — all stored as ordinary Markdown.
+- **More than a reader.** Live queries, table views, task lists, calendars, Kanban boards, canvases and a Command Center page — all stored as ordinary files.
+- **Knows which document is current.** Superseded documents are flagged and listed last; copy any passage as a citation with its source, heading and revision.
 - **Works with your AI assistant.** Claude and other MCP assistants can search and, if you allow it, edit your notes — every AI change keeps the old text.
 
 ## Features
@@ -130,6 +132,18 @@ Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run querie
 <img src="docs/images/ai-connection.jpg" alt="AI connection settings">
 </td>
 </tr>
+<tr>
+<td valign="top">
+
+### Table views
+A `.base` file describes table views of your notes in YAML: filters, computed columns, sorting, grouping and summary rows, with several views as tabs. Open it on its own or embed it in a note with `![[Reports.base#View]]` — inside an embed, `this` is the note that holds it, so one view file lists the right rows for every note it is placed in.
+</td>
+<td valign="top">
+
+### Document status and citations
+From the front matter (`status`, `superseded_by`, `review_due`, `revision`): superseded documents get a warning with a link to the current one and come last in search and quick open; overdue reviews and drafts are labelled. `Ctrl+Shift+C` copies the selected text as a quote with a link to its note and heading, the document id, revision and effective date.
+</td>
+</tr>
 </table>
 
 **Also included:** wiki links with headings, blocks and aliases · footnotes · folding of headings, lists and code in the editor · embeds (`![[note]]`, images, audio, video) · backlinks and outline · front-matter properties · tags and nested tags · callouts · highlights and comments · Mermaid diagrams · note templates · daily notes · image viewer · command palette · print to PDF · light and dark themes.
@@ -140,13 +154,15 @@ Built-in [MCP](https://modelcontextprotocol.io) server: search, read, run querie
 
 ## Performance
 
-Measured on a real-world library of **190,522 notes, 2.49 million links (728 MB)**, and on a made-up 139,000-note folder used for all pictures in this README.
+Measured on a real-world library of **241,865 files, 240,280 notes and 3.16 million links (815 million characters of text)** in version 1.25, and on a made-up 139,000-note folder used for all pictures in this README.
 
 | Task | Time |
 |---|---|
-| First open (no cache) | ≈ 17–19 s |
-| Reopen (cached) | ≈ 1–2 s — changes are checked in the background |
-| Full-text search | 20–130 ms |
+| First open (no cache) | ≈ 25 s when the files are already on the disk; longer the first time a sync tool has to bring them down |
+| Reopen (cached) | ≈ 2 s — changes are checked in the background |
+| Full-text search | 50–150 ms |
+| Search index, built in the background | ≈ 40 s, once |
+| Table view over every file (`file.hasLink(this)`) | ≈ 0.3 s |
 | Quick open by name | ≈ 25 ms |
 | Live query over the whole library | ≈ 0.1 s |
 | Galaxy — one frame | ≈ 1 ms |
@@ -241,11 +257,12 @@ npm run dist:win   # portable .exe and .zip in dist/
 | `src/app.js`, `src/edit.js`, `editor/` | Reader and editor (CodeMirror 6, live preview in `editor/live-preview.js`) |
 | `src/panes.js` | Tabs and the right pane |
 | `src/command.js`, `src/dataview.js`, `src/dvview.js`, `src/kanban.js`, `src/canvas.js` | Command Center, queries, Kanban, Canvas |
+| `src/bases.js` | Table view files (`.base`): YAML, the expression language, filters, sorting, grouping, summaries |
 | `mcp/lanternote-mcp.js` | MCP server for AI assistants (no extra dependencies); `scripts/make-mcpb.js` packs it as a Claude Desktop extension |
 | `tests/`, `scripts/drive.js` | Automated tests that drive the app through DevTools |
 
 ```bash
-node tests/mcp.js                                    # AI connection, 35 checks
+node tests/mcp.js                                    # AI connection, 41 checks
 node scripts/drive.js <test-folder> tests/editing.js # UI scenarios — see tests/README.md
 node scripts/bench-index.js <folder> <words>         # index and search timings
 npm run media -- <work-folder>                        # rebuild guide, adverts and README pictures

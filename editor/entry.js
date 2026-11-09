@@ -10,7 +10,7 @@
 //   • live preview (editor/live-preview.js), switched on and off at run time;
 //   • folding of headings and lists (gutter next to the text, Ctrl+Shift+[ / ]).
 import { EditorState, Compartment } from '@codemirror/state';
-import { EditorView, keymap, drawSelection, highlightActiveLine, placeholder, dropCursor } from '@codemirror/view';
+import { EditorView, keymap, drawSelection, placeholder, dropCursor, ViewPlugin, Decoration } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab, undo, redo, undoDepth, redoDepth } from '@codemirror/commands';
 import { syntaxHighlighting, HighlightStyle, indentOnInput, bracketMatching, foldGutter, codeFolding, foldKeymap, foldAll, unfoldAll } from '@codemirror/language';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -18,6 +18,24 @@ import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } 
 import { search, searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { tags as t } from '@lezer/highlight';
 import { livePreview } from './live-preview.js';
+
+// The cursor line is tinted only while nothing is selected: its background sits above the
+// selection layer, so with a selection it would hide what is selected on that line.
+const activeLine = ViewPlugin.fromClass(class {
+  constructor(view) { this.decorations = this.build(view); }
+  update(u) { if (u.docChanged || u.selectionSet || u.viewportChanged) this.decorations = this.build(u.view); }
+  build(view) {
+    const sel = view.state.selection;
+    if (sel.ranges.some((r) => !r.empty)) return Decoration.none;
+    const marks = [];
+    let last = -1;
+    for (const r of sel.ranges) {
+      const line = view.state.doc.lineAt(r.head);
+      if (line.from > last) { marks.push(Decoration.line({ class: 'cm-activeLine' }).range(line.from)); last = line.from; }
+    }
+    return Decoration.set(marks);
+  }
+}, { decorations: (v) => v.decorations });
 
 const style = HighlightStyle.define([
   { tag: t.heading1, fontSize: '1.6em', fontWeight: '700' },
@@ -40,7 +58,9 @@ const theme = EditorView.theme({
   '.cm-content': { maxWidth: 'var(--note-width, 780px)', margin: '0 auto', padding: '24px 32px 40vh', caretColor: 'var(--accent)' },
   '&.cm-focused': { outline: 'none' },
   '.cm-activeLine': { background: 'color-mix(in srgb, var(--accent-bg) 45%, transparent)' },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': { background: 'var(--accent-bg) !important' },
+  // the selection must stand out from the paper and from the cursor line, in both themes
+  '.cm-selectionBackground': { background: 'color-mix(in srgb, var(--accent) 22%, transparent) !important' },
+  '&.cm-focused .cm-selectionBackground, ::selection': { background: 'color-mix(in srgb, var(--accent) 38%, transparent) !important' },
   '.cm-cursor': { borderLeftColor: 'var(--accent)' },
   '.cm-wikilink': { color: 'var(--link)' },
   '.cm-tooltip': { background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: '6px', boxShadow: 'var(--shadow)' },
@@ -140,7 +160,7 @@ export function create(parent, opts) {
         history(),
         drawSelection(),
         dropCursor(),
-        highlightActiveLine(),
+        activeLine,
         indentOnInput(),
         bracketMatching(),
         closeBrackets(),
@@ -231,6 +251,23 @@ export function create(parent, opts) {
       const eff = lp.reconfigure(isLive ? lpExt : []);
       view.dispatch({ effects: eff });
       for (const [k, st] of states) states.set(k, st.update({ effects: eff }).state);
+    },
+    // the selected text and the nearest heading above it (outside code blocks), for citations
+    selection() {
+      const { from, to } = view.state.selection.main;
+      const doc = view.state.doc;
+      const startLine = doc.lineAt(from).number;
+      let heading = '', fence = null;
+      const lines = [];
+      for (let n = 1; n <= startLine; n++) lines.push(doc.line(n).text);
+      for (const ln of lines) {
+        const f = /^\s*(`{3,}|~{3,})/.exec(ln);
+        if (fence) { if (f && f[1][0] === fence[0] && f[1].length >= fence.length) fence = null; continue; }
+        if (f) { fence = f[1]; continue; }
+        const h = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(ln);
+        if (h) heading = h[1];
+      }
+      return { text: doc.sliceString(from, to), heading, line: startLine };
     },
     scrollToLine(n) {
       const line = view.state.doc.line(Math.max(1, Math.min(n, view.state.doc.lines)));

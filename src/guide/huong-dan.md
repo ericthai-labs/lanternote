@@ -214,6 +214,76 @@ CALENDAR file.mday
 - Điền sẵn: `<% tp.file.title %>`, `<% tp.date.now("DD/MM/YYYY") %>`, `<% tp.date.now() %>`, `{{title}}`, `{{date}}`, `{{time}}`, `{{date:DD/MM/YYYY}}`. Lệnh Templater khác được giữ nguyên và có thông báo.
 - Mẫu cho ghi chú hằng ngày (Cài đặt → Daily notes) cũng dùng được các cú pháp trên.
 
+## 7b. Bảng xem (file .base)
+
+File `.base` là một **bảng xem lưu thành file** (YAML): lọc ghi chú theo thuộc tính, thư mục, tag, liên kết; thêm cột tính toán; sắp xếp, nhóm, dòng tổng. Một file có thể có nhiều **view**, hiện thành các tab phía trên bảng.
+
+- **Mở trực tiếp**: file `.base` hiện trong cây thư mục với biểu tượng ▦. Bấm vào là thấy bảng; **Ctrl+E** để sửa YAML, Ctrl+E lần nữa để xem lại bảng.
+- **Nhúng vào ghi chú**: viết `![[Bao-cao.base]]` (view đầu tiên) hoặc `![[Bao-cao.base#Tau]]` (view tên *Tau*). Trong bảng nhúng, `this` là **ghi chú đang chứa bảng** — nên cùng một file `.base` nhúng vào ghi chú của từng tàu sẽ tự lọc ra báo cáo của đúng tàu đó.
+- Khối ` ```base ` trong ghi chú cũng chạy được (viết YAML ngay trong ghi chú).
+- Bảng **tự cập nhật** khi ghi chú hoặc file `.base` thay đổi. Bấm tên ghi chú trong bảng để mở.
+
+Ví dụ `Bao-cao.base`:
+
+~~~yaml
+filters:
+  and:
+    - file.inFolder("02-Bao-Cao")
+    - 'loai == "bao-cao"'
+formulas:
+  han: (ngay + "30d").format("DD/MM/YYYY")
+properties:
+  file.name: {displayName: Báo cáo}
+  formula.han: {displayName: Hạn xem lại}
+views:
+  - type: table
+    name: Tất cả
+    order: [file.name, ngay, tram, formula.han]
+    sort:
+      - property: ngay
+        direction: DESC
+  - type: table
+    name: Tau
+    filters: list(tau).contains(this)
+    order: [file.name, ngay]
+  - type: table
+    name: Theo trạm
+    groupBy: {property: tram, direction: ASC}
+    summaries: {ngay: Latest}
+~~~
+
+Cách viết:
+
+- `filters`: một biểu thức, hoặc lồng `and:` / `or:` / `not:` (với `not`: không câu nào đúng). Mỗi view có thể thêm `filters` riêng (cộng thêm với bộ lọc chung).
+- Thuộc tính: `tram` hoặc `note.tram` là trường frontmatter; `file.name`, `file.basename`, `file.path`, `file.folder`, `file.ext`, `file.size`, `file.ctime`, `file.mtime`, `file.tags`, `file.links` (gồm cả link trong frontmatter), `file.backlinks`, `file.properties`; `formula.x` là cột tính toán.
+- Hàm của file: `file.hasTag("a", "b")` (tính cả tag con), `file.inFolder("thư mục")`, `file.hasLink(this)`, `file.hasProperty("x")`.
+- Toán tử: `+ - * / %`, `== != > < >= <=`, `&& || !`, ngoặc. Ngày cộng/trừ khoảng thời gian: `ngay + "1M"` (M = tháng, m = phút), `today() - "7d"`, `ngay - date("2026-01-01")`.
+- Hàm chung: `if(điều kiện, a, b)`, `date("2026-11-09")`, `today()`, `now()`, `link("Tên")`, `list(x)`, `number(x)`, `min()`, `max()`, `duration("2h")`.
+- Phương thức: text (`contains`, `startsWith`, `lower`, `replace`, `split`, `slice`, `title`…), số (`round(2)`, `toFixed(1)`, `abs`…), danh sách (`contains`, `containsAny`, `filter(value > 2)`, `map(value * 2)`, `reduce(acc + value, 0)`, `unique`, `sort`, `join`, `length`…), ngày (`format("DD/MM/YYYY")`, `relative()`, `year`, `month`, `day`…), regex `/abc/.matches(x)`.
+- View: `order` (thứ tự cột), `sort` (một hoặc nhiều cột, `ASC`/`DESC`; ô trống luôn ở cuối), `groupBy`, `limit`, `summaries` (`Sum`, `Average`, `Min`, `Max`, `Median`, `Stddev`, `Range`, `Earliest`, `Latest`, `Checked`, `Unchecked`, `Empty`, `Filled`, `Unique`, hoặc tên một công thức trong `summaries:` chung dùng biến `values`).
+- Kiểu view khác `table` (list, cards…) tạm hiện thành bảng. Lỗi cú pháp YAML hoặc biểu thức hiện ngay trong khung bảng.
+
+## 7c. Trạng thái hiệu lực tài liệu và trích dẫn
+
+**Trạng thái** — Lanternote đọc frontmatter của ghi chú:
+
+- `status` / `state` / `trangthai` / `trang_thai`: `current`, `active`, `dang-ap-dung` → còn hiệu lực; `superseded`, `obsolete`, `withdrawn`, `archived`, `ngung-ap-dung` → **hết hiệu lực**; `draft`, `nhap`, `cho-duyet` → bản nháp.
+- `superseded_by: "[[Tên bản mới]]"` (hoặc `replaced_by`, `thay_the_boi`) → hết hiệu lực, có link tới bản mới.
+- `review_due` / `next_review` / `expires` / `han_xem_lai` / `ngay_het_han` (YYYY-MM-DD) → quá ngày là **⏰ review due**.
+- `revision` / `rev` / `phien_ban` → nhãn revision (✓ xanh nếu còn hiệu lực).
+
+Bản hết hiệu lực có **băng cảnh báo đỏ** ở đầu ghi chú, bị làm mờ và gạch ngang trong cây thư mục, và **xếp cuối** khi tìm kiếm và Quick open. Tắt trong Cài đặt → Files & links → *Show document status*.
+
+**Chép làm trích dẫn** — bôi đen một đoạn (chế độ đọc hoặc sửa) rồi bấm **Ctrl+Shift+C**. Clipboard nhận:
+
+~~~
+> Đoạn văn được chọn
+>
+> — [[Tên ghi chú#Mục|Tên ghi chú › Mục]] · doc_id · revision · effective 2026-10-01 · copied 2026-11-09
+~~~
+
+Có `⚠ SUPERSEDED` nếu tài liệu đã hết hiệu lực. Dán vào báo cáo là có ngay nguồn, bấm link mở đúng mục.
+
 ## 8. Khôi phục phiên bản cũ
 
 Mỗi khi một ghi chú bị ghi đè, bản trước đó được giữ lại (tối đa một bản mỗi 5 phút, giữ 14 ngày). Các bản này nằm trên máy của bạn, **ngoài** thư mục ghi chú, nên không bị OneDrive đồng bộ.

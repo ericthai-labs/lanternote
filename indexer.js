@@ -18,6 +18,7 @@ const Core = require('./src/core.js');
 const SI = require('./search-index.js');
 const SQ = require('./search-query.js');
 const DQL = require('./src/dataview.js');
+const Bases = require('./src/bases.js');
 
 const MD_EXT = new Set(['.md', '.markdown']);
 const SKIP_DIRS = new Set(['node_modules']); // folders starting with '.' are skipped anyway
@@ -172,6 +173,7 @@ async function open(root, { instant = false, ensure = null } = {}) {
     for (const p of S.stray.keys()) S.meta.delete(p);
     resolveAll();
     S.snap = saved;
+    if (!saved.status || saved.statusDay !== new Date().toDateString()) addStatus(saved);
     S.timing = { cached: true, instant: true, files: S.files.length, notes: S.meta.size };
     saved.timing = S.timing;
     let snap = saved;
@@ -191,6 +193,7 @@ async function open(root, { instant = false, ensure = null } = {}) {
     S.meta = cache.meta;
     resolveAll();
     S.snap = cs;
+    if (!cs.status || cs.statusDay !== new Date().toDateString()) addStatus(cs);
     S.timing = { walk: t1 - t0, cached: true, files: S.files.length, notes: md.length };
     cs.timing = S.timing;
     verify(gen, md).then(() => fillSearch(gen)).catch(logError);
@@ -385,7 +388,24 @@ function snapshot() {
     root: S.root, name: S.name, files, mtimes, edges: Uint32Array.from(edges),
     tagNames, tagOff, tagFiles, truncated: files.length >= MAX_FILES, timing: S.timing,
   };
+  addStatus(S.snap);
   return S.snap;
+}
+// document status (current / superseded / draft / review due) and revision per note, for the window;
+// recomputed on every snapshot, and added to a snapshot read from an older cache
+function addStatus(snap) {
+  const files = snap.files, n = files.length, today = Date.now();
+  const status = new Uint8Array(n), revIdx = [], revStr = [];
+  for (let i = 0; i < n; i++) {
+    const m = S.meta.get(files[i]);
+    if (!m || !m.fields) continue;
+    const d = Core.docStatus(m.fields, today);
+    if (!d) continue;
+    status[i] = Core.statusByte(d);
+    if (d.rev != null) { revIdx.push(i); revStr.push(d.rev.slice(0, 40)); }
+  }
+  snap.status = status; snap.revIdx = Uint32Array.from(revIdx); snap.revStr = revStr; snap.statusDay = new Date(today).toDateString();
+  return snap;
 }
 
 // ---------------- incremental updates ----------------
@@ -520,14 +540,19 @@ async function search(q, limit) {
     found = todo.filter((h) => h.ok);
     checked = todo.filter((h) => !h.late).length;
   } else found = list.filter((h) => passes(h.p));
-  found.sort(order);
+  // documents marked superseded go after the others (their order among themselves is kept)
+  const today = Date.now(), stCache = new Map();
+  const docSt = (p) => { if (!stCache.has(p)) stCache.set(p, Core.docStatus((S.meta.get(p) || {}).fields, today)); return stCache.get(p); };
+  const old = (h) => { const d = docSt(h.p); return d && d.state === 2 ? 1 : 0; };
+  found.sort((a, b) => old(a) - old(b) || order(a, b));
   const top = found.slice(0, limit);
   if (!needText) {
     await pool(top, IO, async (h) => {
       try { h.s = marks.length ? snippetOf(await fs.promises.readFile(path.join(S.root, h.p), 'utf8'), marks) : ''; } catch { h.s = ''; }
     });
   }
-  return { total: found.length, hits: top.map(({ p, s }) => ({ p, s: s || '' })), marks, capped, more, checked, ms: now() - t0, partial: false, indexed: S.meta.size, notes: S.meta.size };
+  const stOf = (p) => { const d = docSt(p); return d ? { state: d.state, due: d.due, rev: d.rev } : null; };
+  return { total: found.length, hits: top.map(({ p, s }) => ({ p, s: s || '', st: stOf(p) })), marks, capped, more, checked, ms: now() - t0, partial: false, indexed: S.meta.size, notes: S.meta.size };
 }
 
 // ---------------- Dataview queries ----------------
@@ -697,6 +722,58 @@ function dvQuery(src, origin) {
   return res;
 }
 
+// A view file (`.base`, or the text of a ```base block): its rows over every file in the folder.
+// `this` is the note the view is embedded in, or the view file itself when opened on its own.
+function baseQuery({ src, file, view, origin }) {
+  const t0 = now();
+  let text = src;
+  if (text == null) {
+    if (!file || !S.index.has(file)) throw new Error('view file not found: ' + (file || ''));
+    text = fs.readFileSync(path.join(S.root, file), 'utf8');
+  }
+  let def;
+  try { def = Bases.parseYaml(text); } catch (e) { throw new Error('the view file is not valid YAML — ' + e.message); }
+  const adj = dvAdjacency();
+  const env = {
+    files: S.files,
+    info: (p) => { const m = S.meta.get(p) || {}; return { size: m.size, ctime: m.ctime, mtime: m.mtime, tags: m.tags, fields: m.fields }; },
+    out: (p) => { const i = S.index.get(p); return i === undefined ? [] : adj.out[i].map((j) => S.files[j]); },
+    inn: (p) => { const i = S.index.get(p); return i === undefined ? [] : adj.inn[i].map((j) => S.files[j]); },
+    resolve: (t, from) => { const j = S.resolveIdx ? S.resolveIdx(t, from || '') : -1; return j >= 0 ? S.files[j] : null; },
+    has: (p) => S.index.has(p),
+    now: Date.now(),
+  };
+  const thisPath = origin && S.index.has(origin) ? origin : file || null;
+  const r = Bases.run(def, view, env, thisPath, DV_MAX_ROWS);
+  // only plain values cross to the window
+  const DAY = 864e5;
+  const stem = (p) => { const b = p.split('/').pop(); const i = b.lastIndexOf('.'); return i > 0 ? b.slice(0, i) : b; };
+  const plain = (v) => {
+    if (v == null) return null;
+    if (Array.isArray(v)) return v.map(plain);
+    if (v instanceof RegExp) return String(v);
+    if (typeof v === 'object') {
+      if (v.t === 'link') return { t: 'link', path: v.path, display: v.display };
+      if (v.t === 'file' || v.t === 'ctx') return { t: 'link', path: v.path, display: stem(v.path) };
+      if (v.t === 'date') return { t: 'date', ms: v.ms, time: v.time };
+      if (v.t === 'dur') return { t: 'dur', ms: v.ms + (v.mo || 0) * 30 * DAY };
+      if (v.t) return null;
+      const o = {};
+      for (const k of Object.keys(v)) o[k] = plain(v[k]);
+      return o;
+    }
+    return v;
+  };
+  const nameCol = r.columns.map((c) => c.id === 'file.name');
+  const row = (x) => ({ p: x.p, cells: x.cells.map((v, k) => (nameCol[k] ? { t: 'link', path: x.p, display: stem(x.p) } : plain(v))) });
+  r.rows = r.rows.map(row);
+  if (r.groups) r.groups = r.groups.map((gr) => ({ key: plain(gr.key), rows: gr.rows.map(row) }));
+  if (r.summaries) r.summaries = r.summaries.map((x) => (x ? { name: x.name, value: plain(x.value), error: x.error } : null));
+  r.file = file || null;
+  r.ms = now() - t0;
+  return r;
+}
+
 // First line in each source note that mentions the target (for backlinks).
 // Notes that name a note (or one of its aliases) without linking to it.
 // Candidates: notes with every word of a name; then whole-word matches outside links.
@@ -748,6 +825,10 @@ const handlers = {
   dv: ({ q, origin }) => {
     if (!S || !S.snap) return { error: 'The folder is still loading — the query runs as soon as it is ready.', loading: true };
     try { return dvQuery(q, origin); } catch (e) { return { error: e.message }; }
+  },
+  base: (a) => {
+    if (!S || !S.snap) return { error: 'The folder is still loading — the view shows as soon as it is ready.', loading: true };
+    try { return baseQuery(a); } catch (e) { return { error: e.message }; }
   },
   flush: () => { saveCache(); saveSearch(); return true; },
   mem: () => { if (global.gc) global.gc(); const h = v8.getHeapStatistics(); return `${(h.used_heap_size / 2 ** 20).toFixed(0)} MB used`; },

@@ -55,7 +55,10 @@ const Ed = (() => {
     if (titleBusy) return titleBusy; // a rename from this title is already running
     if (!path || renaming) return Promise.resolve();
     const v = clean(g('editTitle').value);
-    if (v && v !== stem(path)) { const from = path; g('editTitle').value = v; titleBusy = rename(from, (dirOf(from) ? dirOf(from) + '/' : '') + v + '.md').finally(() => { titleBusy = null; }); return titleBusy; }
+    // a note's title has no extension; other files (view files) show and keep theirs
+    const ext = MD_EXT.test(path) ? '.md' : (/\.[^./]+$/.exec(path) || [''])[0];
+    const name = !MD_EXT.test(path) && v.toLowerCase().endsWith(ext.toLowerCase()) ? v : v + ext;
+    if (v && v !== stem(path)) { const from = path; g('editTitle').value = v; titleBusy = rename(from, (dirOf(from) ? dirOf(from) + '/' : '') + name).finally(() => { titleBusy = null; }); return titleBusy; }
     g('editTitle').value = stem(path);
     return titleBusy || Promise.resolve();
   }
@@ -443,6 +446,7 @@ const Ed = (() => {
     ['Insert template', 'Alt+E', () => Templates.insert()],
     ['New note from template…', '', () => Templates.newFromTemplate()],
     ['Toggle reading / editing', 'Ctrl+E', () => toggle()],
+    ['Copy selection as citation', 'Ctrl+Shift+C', () => copyCitation()],
     ['New tab', 'Ctrl+T', () => Tabs.newTab()],
     ['Close tab', 'Ctrl+W', () => closeTab()],
     ['Next tab', 'Ctrl+Tab', () => cycleTab(1)],
@@ -550,6 +554,8 @@ const Ed = (() => {
     get renaming() { return renaming; },
     get path() { return path; },
     active, show, hide, flush, initMode, externalChange, toggle, toggleTo, newNote, createFromLink, dailyNote, palette, toggleTaskAt, renameTo: rename,
+    selection: () => (cm && active() ? cm.selection() : null),
+    text: () => (cm && active() ? cm.getValue() : null),
     themeChanged() { if (cm) cm.setDark(document.documentElement.dataset.theme === 'dark'); Split.themeChanged(); },
     settingsChanged() { if (cm) { cm.setLivePreview(Prefs.get('livePreview')); cm.setFolding(Prefs.get('folding') !== false); cm.view.dispatch({}); } Split.settingsChanged(); },
     // insert text at the cursor of the note being edited (templates)

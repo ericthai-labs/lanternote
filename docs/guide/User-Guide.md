@@ -7,7 +7,7 @@ version: 1.23.0
 
 *Version 1.23.0. The pictures were taken with version 1.23.0 on a **made-up folder of about 139,000 notes** (built by `scripts/make-demo-vault.js`): all note names, folders and texts in it are invented.*
 
-Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, backlinks, tags, canvases, live queries, tasks, calendars and a link graph. It stays fast on very large folders (measured on 200,000 notes), runs on PCs without a graphics card, and never sends your notes anywhere.
+Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, backlinks, tags, canvases, live queries, tasks, calendars and a link graph. It stays fast on very large folders (measured on 240,000 notes), runs on PCs without a graphics card, and never sends your notes anywhere.
 
 ## Highlights
 
@@ -20,9 +20,12 @@ Lanternote is a Windows app for a **folder of Markdown notes**: wiki links, back
 | **Your vault as a galaxy** | Every star is a note, every arm a folder. Zoom in to read names, click a star to open it. |
 | **Command Center** | One page with what matters: projects, due dates, open tasks, a calendar, recent notes — built from an ordinary note you can edit. |
 | **Live queries** | Tables, lists, task lists and month calendars from ` ```dataview ` blocks, updated as notes change. |
+| **Table views** *(new in 1.24)* | A `.base` file holds table views of your notes — filters, computed columns, sorting, groups, summary rows. Embed one in many notes and each shows its own rows. |
+| **Document status** *(new in 1.25)* | Superseded documents are flagged and come last in search; drafts and overdue reviews are labelled; the current revision shows next to the name. |
+| **Copy as citation** *(new in 1.25)* | `Ctrl+Shift+C` copies the selected text with a link to its note and heading, the document id, revision and effective date. |
 | **Kanban boards** | Drag cards between lanes; boards are plain Markdown notes in the common board format. |
 | **Tick tasks anywhere** | Check a task in any query result or on the Command Center: the note is updated on the spot. |
-| **Built for size** | ≈ 200,000 notes: opens in 1–2 s after the first time, queries in ≈ 0.1 s, the galaxy draws a frame in ≈ 1 ms. |
+| **Built for size** | ≈ 240,000 notes: opens in ≈ 2 s after the first time, queries in ≈ 0.1 s, the galaxy draws a frame in ≈ 1 ms. |
 | **Any PC** | Graph and galaxy are drawn without a graphics card. Portable: no installation, no admin rights. |
 | **Works with your AI assistant** | Claude and other MCP assistants can search, query and — if you allow it — edit your notes. Every AI change keeps the old text. |
 | **Opens at once** | A folder you opened before appears immediately from its saved index; double-click a note in Explorer and it opens in its folder. |
@@ -173,6 +176,65 @@ SORT due ASC
 
 `TABLE`, `LIST`, `TASK`, `CALENDAR`; `FROM` folders, `#tags` and `[[links]]`; `WHERE`, `SORT`, `GROUP BY`, `FLATTEN`, `LIMIT`; fields from the front matter, inline `key:: value` and `file.*`; the common functions (`date(today)`, `dur(7 days)`, `contains`, `dateformat`, …).
 
+## 6b. Table views — `.base` files
+
+A `.base` file is a table view saved as YAML. It is listed in the file tree with ▦; click it to see the table, **Ctrl+E** to edit its YAML. Embed it in any note with `![[Reports.base]]` (first view) or `![[Reports.base#By aircraft]]`. Inside an embed, `this` is the note that holds it, so the same view file placed in every aircraft note lists that aircraft's reports. A ` ```base ` block in a note works too.
+
+```yaml
+filters:
+  and:
+    - file.inFolder("Reports")
+    - 'type == "report"'
+formulas:
+  review: (date + "30d").format("YYYY-MM-DD")
+properties:
+  file.name: {displayName: Report}
+  formula.review: {displayName: Review by}
+views:
+  - type: table
+    name: All
+    order: [file.name, date, station, formula.review]
+    sort:
+      - property: date
+        direction: DESC
+  - type: table
+    name: By aircraft
+    filters: list(aircraft).contains(this)
+  - type: table
+    name: By station
+    groupBy: {property: station, direction: ASC}
+    summaries: {date: Latest}
+```
+
+- **Filters**: one expression, or nested `and:` / `or:` / `not:`; a view can add its own.
+- **Properties**: front matter names (`station` or `note.station`), `file.name`, `file.path`, `file.folder`, `file.ext`, `file.size`, `file.ctime`, `file.mtime`, `file.tags`, `file.links`, `file.backlinks`, `file.properties`, and `formula.x`.
+- **Functions**: `file.hasTag()`, `file.inFolder()`, `file.hasLink()`, `file.hasProperty()`, `if()`, `date()`, `today()`, `now()`, `link()`, `list()`, `number()`, `min()`, `max()`; text, number, list (`filter`, `map`, `reduce`, `contains`, `unique`, `join`…) and date (`format`, `relative`, `year`…) methods; dates plus or minus durations (`"1M"`, `"7d"`).
+- **Views**: `order`, `sort`, `groupBy`, `limit`, and `summaries` (Sum, Average, Min, Max, Median, Range, Earliest, Latest, Empty, Filled, Unique…).
+- Tables refresh as notes change; mistakes in the YAML or an expression are shown in place of the table.
+
+## 6c. Document status and citations
+
+From a note's front matter, Lanternote knows whether a document is current:
+
+| Front matter | Shown as |
+|---|---|
+| `status: superseded` (or obsolete, withdrawn, archived…), `superseded_by: "[[New one]]"` | ⚠ **superseded** — a red warning at the top with a link to the replacement; dimmed and struck through in the file tree; listed last in search and quick open |
+| `status: draft` | ✎ draft |
+| `review_due: 2026-10-01` (or `next_review`, `expires`) in the past | ⏰ review due |
+| `revision: Rev 10` with `status: current` | ✓ Rev 10 |
+
+Turn it off in Settings → Files & links → *Show document status*. The AI connection's search returns the same status.
+
+**Copy as citation** — select text in reading or editing view and press **Ctrl+Shift+C**:
+
+```
+> The selected text
+>
+> — [[Torque SOP#3. Scope|Torque SOP › 3. Scope]] · SOP-007 · Iss02Rev03 · effective 2026-10-01 · copied 2026-11-10
+```
+
+A superseded document adds `⚠ SUPERSEDED`. The link opens the note at that heading.
+
 ## 7. Tasks
 
 ![Tasks](img/g07-tasks.png)
@@ -322,6 +384,7 @@ Every command in one list: type a few letters, ↑↓, Enter.
 | Ctrl+G / Ctrl+Shift+G | Graph of all notes / around this note |
 | Ctrl+N | New note |
 | Ctrl+E | Read ⇄ edit |
+| Ctrl+Shift+C | Copy the selected text as a citation |
 | Alt+E | Insert a template |
 | Ctrl+T / Ctrl+W | New tab / close tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |

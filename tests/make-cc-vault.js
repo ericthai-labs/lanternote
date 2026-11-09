@@ -8,7 +8,8 @@ const w = (rel, text, daysAgo = 3) => {
   fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text);
   const t = new Date(Date.now() - daysAgo * 86400000); fs.utimesSync(f, t, t);
 };
-const iso = (days) => { const t = new Date(); t.setDate(t.getDate() + days); return t.toISOString().slice(0, 10); };
+// the local date (toISOString is UTC, a day off after midnight east of Greenwich)
+const iso = (days) => { const t = new Date(); t.setDate(t.getDate() + days); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
 w('00-Inbox/Idea.md', '# Idea\n#idea\n', 10);
 w('00-Inbox/Capture.md', '# Capture\n#idea #todo\n', 9);
 w('01-Process/Running.md', '# Running\n[[Idea]]\n', 8);

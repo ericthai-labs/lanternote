@@ -190,7 +190,44 @@
     return byBase;
   }
 
-  const api = { MD_EXT, baseOf, dirOf, stem, norm, safeDecode, splitFm, parseYaml, TAG_RE, stripCode, findMentions, linkTarget, parseNote, parseTasks, makeResolver, buildByBase };
+  // ---------------- document status ----------------
+  // From the front matter: is the document current, superseded or a draft; has its review
+  // date passed; its revision. state: 0 unknown · 1 current · 2 superseded · 3 draft.
+  const ST_KEYS = ['status', 'state', 'doc_status', 'trangthai', 'trang_thai'];
+  const BY_KEYS = ['superseded_by', 'replaced_by', 'thay_the_boi'];
+  const DUE_KEYS = ['review_due', 'next_review', 'review_by', 'expires', 'expiry', 'valid_until', 'han_xem_lai', 'ngay_het_han'];
+  const REV_KEYS = ['revision', 'rev', 'version', 'phien_ban'];
+  const KEYS = new Set([...ST_KEYS, ...BY_KEYS, ...DUE_KEYS, ...REV_KEYS]);
+  const ST_OLD = /^(superseded|obsolete|withdrawn|cancell?ed|archived|replaced|expired|retired|deprecated|inactive|revoked|het[-_ ]?hieu[-_ ]?luc|ngung([-_ ]?ap[-_ ]?dung)?|da[-_ ]?thay[-_ ]?the|huy)$/;
+  const ST_CUR = /^(current|active|effective|approved|released|valid|in[-_ ]?force|dang[-_ ]?ap[-_ ]?dung|hieu[-_ ]?luc|con[-_ ]?hieu[-_ ]?luc)$/;
+  const ST_DRAFT = /^(draft|wip|in[-_ ]?review|for[-_ ]?review|pending|proposed|nhap|ban[-_ ]?nhap|cho[-_ ]?duyet)$/;
+  const plainLow = (v) => String(v).trim().toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function docStatus(fields, today = Date.now()) {
+    if (!fields) return null;
+    const got = {};
+    for (const k in fields) {
+      const lk = k.toLowerCase();
+      if (!KEYS.has(lk) || lk in got) continue;
+      let v = fields[k];
+      if (Array.isArray(v)) v = v.find((x) => x != null && String(x).trim() !== '');
+      if (v == null || String(v).trim() === '') continue;
+      got[lk] = String(v).trim();
+    }
+    const first = (keys) => { for (const k of keys) if (k in got) return got[k]; return null; };
+    const s = first(ST_KEYS), by = first(BY_KEYS), dueRaw = first(DUE_KEYS), rev = first(REV_KEYS);
+    if (s == null && by == null && dueRaw == null && rev == null) return null;
+    const sv = s == null ? '' : plainLow(s);
+    const state = by != null || ST_OLD.test(sv) ? 2 : ST_DRAFT.test(sv) ? 3 : ST_CUR.test(sv) ? 1 : 0;
+    const m = dueRaw == null ? null : /^(\d{4})-(\d{2})-(\d{2})/.exec(dueRaw);
+    const dueMs = m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : NaN;
+    const due = state !== 2 && dueMs < new Date(today).setHours(0, 0, 0, 0);
+    if (!state && !due && rev == null) return null;
+    return { state, due, dueDate: m ? m[0] : null, rev, by, raw: s };
+  }
+  // one byte per note for the window: bits 0–1 the state, bit 2 a passed review date
+  const statusByte = (d) => (d ? d.state | (d.due ? 4 : 0) : 0);
+
+  const api = { MD_EXT, baseOf, dirOf, stem, norm, safeDecode, splitFm, parseYaml, TAG_RE, stripCode, findMentions, linkTarget, parseNote, parseTasks, makeResolver, buildByBase, docStatus, statusByte };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Core = api;
 })(typeof self !== 'undefined' ? self : this);

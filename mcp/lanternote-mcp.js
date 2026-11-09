@@ -224,6 +224,9 @@ const S = (props, required = []) => ({ type: 'object', properties: props, requir
 const str = (d) => ({ type: 'string', description: d }), int = (d) => ({ type: 'integer', description: d }), bool = (d) => ({ type: 'boolean', description: d });
 const note = str('The note: a path from the folder root ("Projects/Alpha.md") or just its name ("Alpha").');
 
+
+// document status from the front matter (status / superseded_by / review date / revision), as plain words
+const docStatusOut = (st) => (st ? { status: ['unknown', 'current', 'superseded', 'draft'][st.state], ...(st.due ? { review_overdue: true } : {}), ...(st.rev != null ? { revision: st.rev } : {}) } : {});
 const TOOLS = [
   { name: 'vault_info', description: 'Overview of the notes folder: name, number of notes and links, top folders, most used tags, whether writing is allowed. Call this first to learn the folder layout.', inputSchema: S({}), annotations: { readOnlyHint: true },
     run: async () => {
@@ -232,11 +235,11 @@ const TOOLS = [
       const tags = snap.tagNames.map((t, k) => [t, snap.tagOff[k + 1] - snap.tagOff[k]]).sort((a, b) => b[1] - a[1]).slice(0, 30);
       return { folder: snap.name, notes: notes.length, links: snap.edges.length / 2, write: WRITE, only: ONLY.length ? ONLY : undefined, folders: [...folders].sort((a, b) => b[1] - a[1]).map(([name, n]) => ({ name, notes: n })), tags: tags.map(([t, n]) => ({ tag: '#' + t, notes: n })) };
     } },
-  { name: 'search', description: 'Full-text search in every note. All words must appear (as word starts; accents optional). Syntax: "exact phrase", -word or -"phrase" to exclude, a OR b, *1133 for a fragment inside a word or code, path:folder, title:text, tag:#name. Returns paths with a snippet.', inputSchema: S({ query: str('Words to find, with the syntax above.'), limit: int('Maximum results (default 20, at most 100).') }, ['query']), annotations: { readOnlyHint: true },
+  { name: 'search', description: 'Full-text search in every note. All words must appear (as word starts; accents optional). Syntax: "exact phrase", -word or -"phrase" to exclude, a OR b, *1133 for a fragment inside a word or code, path:folder, title:text, tag:#name. Returns paths with a snippet, plus the document status read from the front matter when a note has one (status: current / superseded / draft, review_overdue, revision); superseded documents are listed last.', inputSchema: S({ query: str('Words to find, with the syntax above.'), limit: int('Maximum results (default 20, at most 100).') }, ['query']), annotations: { readOnlyHint: true },
     run: async ({ query, limit = 20 }) => {
       // right after opening a folder the text index may still be building: wait for it (up to 2 minutes)
       let r = await ask('search', { q: query, limit: Math.min(100, limit) * 3 });
-      for (let t = 0; r.partial && t < 240; t++) { await new Promise((ok) => setTimeout(ok, 500)); if (searchReady || t % 10 === 9) r = await ask('search', { q: query, limit: Math.min(100, limit) * 3 }); } const hits = r.hits.filter((h) => visible(h.p)).slice(0, Math.min(100, limit)); return { total: r.total, partial: !!r.partial, hits: hits.map((h) => ({ path: h.p, snippet: h.s })) }; } },
+      for (let t = 0; r.partial && t < 240; t++) { await new Promise((ok) => setTimeout(ok, 500)); if (searchReady || t % 10 === 9) r = await ask('search', { q: query, limit: Math.min(100, limit) * 3 }); } const hits = r.hits.filter((h) => visible(h.p)).slice(0, Math.min(100, limit)); return { total: r.total, partial: !!r.partial, hits: hits.map((h) => ({ path: h.p, snippet: h.s, ...docStatusOut(h.st) })) }; } },
   { name: 'find_notes', description: 'Find notes by name (not content). Words may be in any order; accents optional.', inputSchema: S({ name: str('Part of the note name.'), folder: str('Only inside this folder.'), limit: int('Maximum results (default 30).') }, ['name']), annotations: { readOnlyHint: true },
     run: async ({ name, folder, limit = 30 }) => {
       const words = fold(name).split(/\s+/).filter(Boolean), pre = folder ? folder.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') + '/' : '';

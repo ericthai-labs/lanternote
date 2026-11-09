@@ -8,6 +8,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const IMG_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)$/i;
 const MD_EXT = /\.(md|markdown)$/i;
 const CANVAS_EXT = /\.canvas$/i;
+const BASE_EXT = /\.base$/i;
 const vaultUrl = (p) => 'vault://v/' + p.split('/').map(encodeURIComponent).join('/');
 
 // ---------------- state ----------------
@@ -36,6 +37,23 @@ let hist = []; let hIdx = -1; // the active tab's history (panes.js)
 const stack = [];          // render context stack (for embeds)
 const ctx = () => stack[stack.length - 1] || { from: current, depth: 0 };
 const isNote = (p) => p != null && V.idx.has(p) && MD_EXT.test(p);
+const isBase = (p) => p != null && V.idx.has(p) && BASE_EXT.test(p); // a table view file
+// ---- document status (front matter status / superseded_by / review date / revision) ----
+const statusOn = () => Prefs.get('docStatus') !== false;
+const stByte = (p) => { const i = V.idx.get(p); return i === undefined || !V.status ? 0 : V.status[i]; };
+const isOld = (p) => statusOn() && (stByte(p) & 3) === 2;
+// small labels: ⚠ superseded · ✎ draft · ⏰ review due · ✓ revision
+function statusChips(st, rev) {
+  if (!statusOn() || (!st && rev == null)) return '';
+  const s = st & 3;
+  let h = '';
+  if (s === 2) h += '<span class="ds ds-old" title="Marked superseded or no longer current in its front matter">⚠ superseded</span>';
+  else if (s === 3) h += '<span class="ds ds-draft" title="Marked as a draft in its front matter">✎ draft</span>';
+  if (st & 4) h += '<span class="ds ds-due" title="Its review or expiry date has passed">⏰ review due</span>';
+  if (rev != null) h += `<span class="ds ds-rev${s === 1 ? ' cur' : ''}" title="${s === 1 ? 'Current — revision' : 'Revision'}">${s === 1 ? '✓ ' : ''}${esc(rev)}</span>`;
+  return h;
+}
+const chipsFor = (p) => { const i = V.idx.get(p); return i === undefined ? '' : statusChips(stByte(p), V.rev ? V.rev.get(i) : null); };
 const resolve = (raw, from) => V.resolve(raw, from);
 const outLinks = (p) => { const i = V.idx.get(p); return i === undefined ? [] : [...V.outTo.subarray(V.outOff[i], V.outOff[i + 1])].map((j) => V.files[j]); };
 const backLinks = (p) => { const i = V.idx.get(p); return i === undefined ? [] : [...V.backTo.subarray(V.backOff[i], V.backOff[i + 1])].map((j) => V.files[j]); };
@@ -82,6 +100,11 @@ function buildIndex(d) {
   V.stemLc = V.notes.map((p) => stem(p).toLowerCase());
   V.images = V.files.filter((p) => IMG_EXT.test(p));
   V.canvases = V.files.filter((p) => CANVAS_EXT.test(p));
+  V.bases = V.files.filter((p) => BASE_EXT.test(p));
+  // document status per note (core.js docStatus) and revisions, from the indexer
+  V.status = d.status && d.status.length === n ? d.status : new Uint8Array(n);
+  V.rev = new Map();
+  if (d.revIdx) for (let k = 0; k < d.revIdx.length; k++) V.rev.set(d.revIdx[k], d.revStr[k]);
   V.imgLc = V.images.map((p) => baseOf(p).toLowerCase());
   V.byBase = Core.buildByBase(V.files);
   V.resolve = Core.makeResolver((p) => V.idx.has(p), V.byBase);
@@ -128,6 +151,7 @@ function renderWiki(tok) {
       const size = w ? ` width="${w[1]}"${w[2] ? ` height="${w[2]}"` : ''}` : '';
       return `<img data-vault-src="${esc(p)}" alt="${esc(w ? baseOf(p) : alias || baseOf(p))}"${size}>`;
     }
+    if (BASE_EXT.test(p)) return `<div class="base-embed" data-base="${esc(p)}" data-view="${esc(sub)}" data-origin="${esc(c.from || '')}"></div>`;
     if (/\.(mp3|wav|ogg|m4a)$/i.test(p)) return `<audio controls data-vault-src="${esc(p)}"></audio>`;
     if (/\.(mp4|webm|mov)$/i.test(p)) return `<video controls data-vault-src="${esc(p)}"></video>`;
     if (MD_EXT.test(p) && V.text.has(p) && c.depth < 3 && !stack.some((s) => s.from === p)) {
@@ -352,6 +376,104 @@ async function openBoard(p, push) {
   renderSide(); markTree(); updateNav(); Tabs.sync();
   window.api.setSetting('lastNote:' + V.name, p);
 }
+// The open note's status, read from its own text (always up to date while it is shown)
+function docOf(p) {
+  if (!statusOn()) return null;
+  const t = V.text.get(p);
+  return t == null ? null : Core.docStatus(Core.splitFm(t).fm, Date.now());
+}
+function docChips(p) { const d = docOf(p); return d ? statusChips(Core.statusByte(d), d.rev) : ''; }
+function docBanner(p) {
+  const d = docOf(p);
+  if (!d || (d.state !== 2 && !d.due)) return '';
+  const inline = (s) => { stack.push({ from: p, depth: 1 }); try { return marked.parseInline(String(s)); } finally { stack.pop(); } };
+  if (d.state === 2) {
+    return `<div class="ds-banner old">⚠ <b>Superseded</b> — this document is marked ${d.raw ? `<code>${esc(d.raw)}</code>` : 'superseded'} in its front matter${d.by ? `; replaced by ${inline(d.by)}` : ''}. Check that you are reading the current revision.</div>`;
+  }
+  return `<div class="ds-banner due">⏰ <b>Review due</b> — its review or expiry date (${esc(d.dueDate)}) has passed.</div>`;
+}
+
+// ---- citation: the selected text as a quote, with where it comes from ----
+// > quoted text
+// > — [[Note#Heading|Note › Heading]] · doc id · Rev … · effective … · copied …
+function citationFor(p, text, heading, noteText) {
+  const fm = (noteText != null && Core.splitFm(noteText).fm) || {};
+  const pick = (...keys) => { for (const k of keys) for (const fk in fm) if (fk.toLowerCase() === k && fm[fk] != null && String(fm[fk]).trim() !== '') return String(Array.isArray(fm[fk]) ? fm[fk][0] : fm[fk]).trim(); return null; };
+  const d = Core.docStatus(fm, Date.now());
+  const name = stem(p);
+  const head = String(heading || '').replace(/[[\]|#^]/g, ' ').replace(/\s+/g, ' ').trim();
+  const link = head ? `[[${name}#${head}|${name} › ${head}]]` : `[[${name}]]`;
+  const parts = [link];
+  const id = pick('doc_id', 'ma_tai_lieu', 'ma_quy_trinh', 'document_id');
+  if (id && id !== name) parts.push(id);
+  // a bare revision (3, B, 10) reads as "Rev 3"; a full one (Iss02Rev03, Rev 9) stays as written
+  if (d && d.rev) parts.push(/^[0-9a-z]{1,3}$/i.test(d.rev) ? 'Rev ' + d.rev : d.rev);
+  const eff = pick('effective', 'ngay_hieu_luc', 'effective_date');
+  if (eff) parts.push('effective ' + eff);
+  if (d && d.state === 2) parts.push('⚠ SUPERSEDED');
+  else if (d && d.state === 3) parts.push('draft');
+  const now = new Date();
+  parts.push('copied ' + `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+  const quote = text.replace(/\r/g, '').trim().split('\n').map((l) => ('> ' + l).trimEnd()).join('\n');
+  return `${quote}\n>\n> — ${parts.join(' · ')}\n`;
+}
+// the heading in reading view that comes before a node (embedded notes keep their own)
+function headingBefore(node) {
+  let best = '';
+  for (const h of g('note').querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]')) {
+    if (h.closest('.embed')) continue;
+    if (h === node || h.contains(node) || (h.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) best = h.textContent.trim(); else break;
+  }
+  return best;
+}
+async function copyCitation() {
+  if (!current || !isNote(current)) { toast('Open a note and select some text first'); return; }
+  let text = '', heading = '', noteText = V.text.get(current);
+  if (Ed.active()) {
+    const s = Ed.selection();
+    if (s) { text = s.text; heading = s.heading; noteText = Ed.text(); }
+  } else {
+    const sel = getSelection();
+    if (sel && sel.rangeCount && !sel.isCollapsed && g('note').contains(sel.anchorNode)) { text = sel.toString(); heading = headingBefore(sel.getRangeAt(0).startContainer); }
+  }
+  if (!text.trim()) { toast('Select some text first, then Ctrl+Shift+C'); return; }
+  const out = citationFor(current, text, heading, noteText);
+  await window.api.copy(out);
+  toast('Citation copied' + (heading ? ' — ' + heading : ''));
+  return out;
+}
+
+// A view file on its own page: the table, its views as tabs; `this` is the view file.
+async function openBase(p, sub, push) {
+  showView('note');
+  if (p === current && push && !Ed.active()) return;
+  const my = ++openSeq;
+  await Ed.flush();
+  await leaveCanvas();
+  await leaveBoard();
+  if (my !== openSeq) return;
+  current = p;
+  if (push) { hist.splice(hIdx + 1); hist.push(p); hIdx = hist.length - 1; }
+  const art = g('note');
+  const dir = dirOf(p);
+  const mt = V.mtimes[V.idx.get(p)];
+  art.innerHTML = sanitize(
+    `<div class="crumbs"><span>${esc(dir ? dir.split('/').join(' / ') : V.name)}</span><span>Table view file</span>${mt ? `<span>Modified ${esc(new Date(mt).toLocaleString())}</span>` : ''}<button class="link" data-reveal>Show in folder</button>${Bookmarks.button(p)}</div>` +
+    `<div class="inline-title">${esc(label(p))}</div><div class="base-embed base-page" data-base="${esc(p)}" data-view="${esc(sub || '')}" data-origin="${esc(p)}"></div>`
+  );
+  art.hidden = false;
+  g('welcome').hidden = true;
+  postProcess(art, p);
+  g('main').scrollTop = 0;
+  document.title = label(p) + ' — Lanternote';
+  markTree(); Bookmarks.syncButton();
+  renderSide();
+  g('outline').innerHTML = '<div class="muted small">Table view file — Ctrl+E edits its YAML</div>';
+  updateNav(); Tabs.sync();
+  window.api.setSetting('lastNote:' + V.name, p);
+  if (Ed.mode === 'edit') { try { await Ed.show(p); } catch (e) { toast('Could not open for editing: ' + e.message); } }
+  else Ed.hide();
+}
 function leaveBoard() {
   if (!KanbanView.active()) return Promise.resolve();
   const f = KanbanView.flush();
@@ -369,6 +491,7 @@ function leaveCanvas() {
 
 async function openNote(p, sub = '', { push = true } = {}) {
   if (p && CANVAS_EXT.test(p) && V.idx.has(p)) { await openCanvas(p, push); return; }
+  if (isBase(p)) { await openBase(p, sub, push); return; }
   if (!isNote(p)) {
     if (p && V.idx.has(p) && IMG_EXT.test(p)) { Viewer.openFile(p); return; } // a picture → the image viewer
     if (p && V.idx.has(p)) { window.api.reveal(p); return; } // other files → show in Explorer
@@ -393,8 +516,8 @@ async function openNote(p, sub = '', { push = true } = {}) {
   const mt = V.mtimes[V.idx.get(p)];
   const mod = mt ? new Date(mt).toLocaleString() : '';
   art.innerHTML = sanitize(
-    `<div class="crumbs"><span>${esc(dir ? dir.split('/').join(' / ') : V.name)}</span><span>${words.toLocaleString()} words</span>${mod ? `<span>Modified ${esc(mod)}</span>` : ''}<button class="link" data-reveal>Show in folder</button>${Bookmarks.button(p)}${KanbanView.raw.has(p) ? '<button class="link" data-board>Board view</button>' : ''}</div>` +
-    `<div class="inline-title">${esc(stem(p))}</div>` + renderMarkdown(p)
+    `<div class="crumbs"><span>${esc(dir ? dir.split('/').join(' / ') : V.name)}</span><span>${words.toLocaleString()} words</span>${mod ? `<span>Modified ${esc(mod)}</span>` : ''}${docChips(p)}<button class="link" data-reveal>Show in folder</button>${Bookmarks.button(p)}${KanbanView.raw.has(p) ? '<button class="link" data-board>Board view</button>' : ''}</div>` +
+    `<div class="inline-title">${esc(stem(p))}</div>` + docBanner(p) + renderMarkdown(p)
   );
   art.hidden = false;
   g('welcome').hidden = true;
@@ -666,9 +789,9 @@ const treeMore = new Map(); // folder → rows shown
 let T = null;              // folder tree built from the note list
 const cmpName = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 // what the file list shows: notes, and pictures unless turned off
-const listed = () => V.notes.concat(V.canvases, Prefs.get('showImages') ? V.images : []);
-const label = (p) => (MD_EXT.test(p) ? stem(p) : CANVAS_EXT.test(p) ? baseOf(p).replace(CANVAS_EXT, '') : baseOf(p));
-const kindClass = (p) => (IMG_EXT.test(p) ? ' img' : CANVAS_EXT.test(p) ? ' canvas' : '');
+const listed = () => V.notes.concat(V.canvases, V.bases, Prefs.get('showImages') ? V.images : []);
+const label = (p) => (MD_EXT.test(p) ? stem(p) : CANVAS_EXT.test(p) ? baseOf(p).replace(CANVAS_EXT, '') : BASE_EXT.test(p) ? baseOf(p).replace(BASE_EXT, '') : baseOf(p));
+const kindClass = (p) => (IMG_EXT.test(p) ? ' img' : CANVAS_EXT.test(p) ? ' canvas' : BASE_EXT.test(p) ? ' base' : isOld(p) ? ' st-old' : '');
 function buildTree() {
   const root = { dirs: new Map(), files: [], path: '' };
   for (const p of listed()) {
@@ -797,8 +920,8 @@ async function runSearch() {
     for (const m of s.matchAll(markRe)) { if (!m[0]) continue; h += esc(s.slice(i, m.index)) + `<mark>${esc(m[0])}</mark>`; i = m.index + m[0].length; }
     return h + esc(s.slice(i));
   };
-  box.innerHTML = hits.map(({ p, s }) =>
-    `<div class="result" data-path="${esc(p)}"><div class="t">${hl(stem(p))}</div><div class="p">${esc(dirOf(p))}</div>${s ? `<div class="s">…${hl(s)}…</div>` : ''}</div>`).join('');
+  box.innerHTML = hits.map(({ p, s, st }) =>
+    `<div class="result${st && st.state === 2 && statusOn() ? ' st-old' : ''}" data-path="${esc(p)}"><div class="t">${hl(stem(p))}${st ? statusChips(st.state | (st.due ? 4 : 0), st.rev) : ''}</div><div class="p">${esc(dirOf(p))}</div>${s ? `<div class="s">…${hl(s)}…</div>` : ''}</div>`).join('');
 }
 
 function renderTags() {
@@ -872,8 +995,8 @@ function swFilter() {
     }
     // pictures by file name, after notes of equal score
     if (Prefs.get('showImages') || Picker.active) for (let i = 0; i < V.images.length; i++) { const r = fuzzy(q, V.imgLc[i]); if (r) found.push({ p: V.images[i], score: r.score + 9, pos: r.pos }); }
-    for (const c of V.canvases) { const r = fuzzy(q, label(c).toLowerCase()); if (r) found.push({ p: c, score: r.score + 9, pos: r.pos }); }
-    swItems = found.sort((a, b) => b.score - a.score).slice(0, 60);
+    for (const c of V.canvases.concat(V.bases)) { const r = fuzzy(q, label(c).toLowerCase()); if (r) found.push({ p: c, score: r.score + 9, pos: r.pos }); }
+    swItems = found.sort((a, b) => (isOld(a.p) ? 1 : 0) - (isOld(b.p) ? 1 : 0) || b.score - a.score).slice(0, 60);
   }
   swSel = 0;
   drawSw();
@@ -882,7 +1005,7 @@ function drawSw() {
   g('swList').innerHTML = swItems.length ? swItems.map(({ p, pos }, i) => {
     const n = label(p); const set = new Set(pos);
     const name = [...n].map((ch, j) => (set.has(j) ? `<b>${esc(ch)}</b>` : esc(ch))).join('');
-    return `<div class="switem${i === swSel ? ' sel' : ''}" data-i="${i}"><div>${IMG_EXT.test(p) ? '🖼 ' : CANVAS_EXT.test(p) ? '🧩 ' : ''}${name}</div><div class="p">${esc(dirOf(p))}</div></div>`;
+    return `<div class="switem${i === swSel ? ' sel' : ''}${isOld(p) ? ' st-old' : ''}" data-i="${i}"><div>${IMG_EXT.test(p) ? '🖼 ' : CANVAS_EXT.test(p) ? '🧩 ' : BASE_EXT.test(p) ? '▦ ' : ''}${name}${chipsFor(p)}</div><div class="p">${esc(dirOf(p))}</div></div>`;
   }).join('') : '<div class="muted small" style="padding:8px">No matching notes</div>';
   const sel = g('swList').querySelector('.sel');
   if (sel) sel.scrollIntoView({ block: 'nearest' });
@@ -917,10 +1040,10 @@ function loadVault(data, keepNote) {
   afterIndex();
   console.log('window index built in', Math.round(performance.now() - t0), 'ms; indexer timing', data.timing);
   if (data.truncated) toast('Very large folder — only the first 1,000,000 files were read.');
-  const target = data.open || (keepNote && (isNote(keepNote) || (CANVAS_EXT.test(keepNote) && V.idx.has(keepNote))) ? keepNote : null);
+  const target = data.open || (keepNote && (isNote(keepNote) || isBase(keepNote) || (CANVAS_EXT.test(keepNote) && V.idx.has(keepNote))) ? keepNote : null);
   if (target) { current = null; openNote(target, '', { push: !keepNote }); return; }
   window.api.getSetting('lastNote:' + V.name).then((last) => {
-    const first = [last, 'README.md', 'Home.md', 'index.md'].find((p) => p && (isNote(p) || (CANVAS_EXT.test(p) && V.idx.has(p))))
+    const first = [last, 'README.md', 'Home.md', 'index.md'].find((p) => p && (isNote(p) || isBase(p) || (CANVAS_EXT.test(p) && V.idx.has(p))))
       || V.notes.reduce((a, b) => (a == null || b < a ? b : a), null);
     Tabs.restore(first).then(() => Split.restore());
     if (!first) toast('No Markdown files in this folder.');
@@ -932,8 +1055,9 @@ function applyChange({ snapshot, changed }) {
   for (const p of changed) V.text.delete(p);
   Split.refresh(changed);
   if (!snapshot) {
-    // only canvases / pictures were rewritten; the index did not change
+    // only canvases / pictures / view files were rewritten; the index did not change
     if (CanvasView.active() && changed.includes(CanvasView.path)) CanvasView.externalChange();
+    if (changed.some((p) => BASE_EXT.test(p))) { if (Ed.active() && changed.includes(Ed.path)) Ed.externalChange(); else DvView.refresh(); }
     return;
   }
   const keep = current;
@@ -941,7 +1065,7 @@ function applyChange({ snapshot, changed }) {
   afterIndex();
   CC.refresh(changed);
   if (!keep) return;
-  if (!isNote(keep) && !(CANVAS_EXT.test(keep) && V.idx.has(keep))) { if (Ed.renaming !== keep) toast('The open note was removed or renamed'); return; }
+  if (!isNote(keep) && !isBase(keep) && !(CANVAS_EXT.test(keep) && V.idx.has(keep))) { if (Ed.renaming !== keep) toast('The open note was removed or renamed'); return; }
   if (Ed.active() && changed.includes(Ed.path)) { Ed.externalChange(); renderSide(); return; }
   if (CanvasView.active()) { if (changed.includes(CanvasView.path)) CanvasView.externalChange(); return; }
   if (KanbanView.active()) { if (changed.includes(KanbanView.path)) KanbanView.externalChange(); else renderSide(); return; }
@@ -1108,6 +1232,7 @@ window.api.onMenu((cmd) => {
     'insert-template': () => Templates.insert(), 'new-from-template': () => Templates.newFromTemplate(),
     'new-tab': () => Tabs.newTab(), 'close-tab': () => closeTab(), 'next-tab': () => cycleTab(1), 'prev-tab': () => cycleTab(-1),
     'split-open': () => current && Split.open(current, '', { newTab: true }), 'split-close': () => Split.hide(),
+    cite: () => copyCitation(),
     'new-note': () => Ed.newNote(), 'new-canvas': () => CanvasView.create(), 'new-board': () => KanbanView.create(), 'toggle-edit': () => Ed.toggle(), palette: () => Ed.palette(), settings: () => Prefs.open(),
     flush: async () => { try { await Ed.flush(); await Split.flush(); await KanbanView.flush(); } finally { window.api.flushed(); } },
   }[cmd] || (() => {}))();

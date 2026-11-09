@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   testCrashIndexer: () => ipcRenderer.invoke('test:crash-indexer'),
   testOpenFile: (f) => ipcRenderer.invoke('test:open-file', f),
   dvQuery: (q, origin) => ipcRenderer.invoke('index:dv', q, origin),
+  baseQuery: (a) => ipcRenderer.invoke('index:base', a),
   snippets: (target, sources) => ipcRenderer.invoke('index:snippets', target, sources),
   mentions: (a) => ipcRenderer.invoke('index:mentions', a),
   graphLayout: (args) => ipcRenderer.invoke('graph:layout', args),
