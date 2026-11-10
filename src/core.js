@@ -190,6 +190,32 @@
     return byBase;
   }
 
+  // ---------------- edge list ----------------
+  // The link graph is a flat Uint32Array of (from, to) pairs, grouped by `from` in ascending order.
+  // edgeOffsets: where each note's pairs start (in pairs); null if the list is not grouped that way.
+  function edgeOffsets(edges, n) {
+    const off = new Uint32Array(n + 1);
+    let last = 0;
+    for (let k = 0; k < edges.length; k += 2) { const i = edges[k]; if (i < last || i >= n) return null; last = i; off[i + 1]++; }
+    for (let i = 0; i < n; i++) off[i + 1] += off[i];
+    return off;
+  }
+  // spliceEdges: the same list with the rows of a few notes replaced — rep: Map(note → its new targets)
+  function spliceEdges(edges, off, rep) {
+    let m = edges.length / 2;
+    for (const [i, o] of rep) m += o.length - (off[i + 1] - off[i]);
+    const out = new Uint32Array(2 * m);
+    let w = 0, r = 0; // w: next value to write; r: next pair to copy from the old list
+    for (const i of [...rep.keys()].sort((a, b) => a - b)) {
+      const keep = edges.subarray(2 * r, 2 * off[i]);
+      out.set(keep, w); w += keep.length;
+      for (const j of rep.get(i)) { out[w++] = i; out[w++] = j; }
+      r = off[i + 1];
+    }
+    out.set(edges.subarray(2 * r), w);
+    return out;
+  }
+
   // ---------------- document status ----------------
   // From the front matter: is the document current, superseded or a draft; has its review
   // date passed; its revision. state: 0 unknown · 1 current · 2 superseded · 3 draft.
@@ -227,7 +253,7 @@
   // one byte per note for the window: bits 0–1 the state, bit 2 a passed review date
   const statusByte = (d) => (d ? d.state | (d.due ? 4 : 0) : 0);
 
-  const api = { MD_EXT, baseOf, dirOf, stem, norm, safeDecode, splitFm, parseYaml, TAG_RE, stripCode, findMentions, linkTarget, parseNote, parseTasks, makeResolver, buildByBase, docStatus, statusByte };
+  const api = { MD_EXT, baseOf, dirOf, stem, norm, safeDecode, splitFm, parseYaml, TAG_RE, stripCode, findMentions, linkTarget, parseNote, parseTasks, makeResolver, buildByBase, docStatus, statusByte, edgeOffsets, spliceEdges };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.Core = api;
 })(typeof self !== 'undefined' ? self : this);

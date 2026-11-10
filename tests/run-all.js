@@ -50,6 +50,7 @@ const RUNS = [ // [scenario, folder, needs TV=<folder>, extra env]
   ['selection.js', () => basicVault('se'), true],
   ['doc-status-ui.js', () => basicVault('ds'), true],
   ['citation.js', () => basicVault('ci'), true],
+  ['delta-ui.js', () => basicVault('du'), true],
   ['canvas.js', () => made('cv', 'make-canvas-vault.js'), true],
   ['dataview.js', () => made('dv', 'make-dv-vault.js'), true],
   ['kanban.js', () => made('kb', 'make-kanban-vault.js'), true],

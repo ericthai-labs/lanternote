@@ -154,7 +154,7 @@ From the front matter (`status`, `superseded_by`, `review_due`, `revision`): sup
 
 ## Performance
 
-Measured on a real-world library of **241,865 files, 240,280 notes and 3.16 million links (815 million characters of text)** in version 1.25, and on a made-up 139,000-note folder used for all pictures in this README.
+Measured on a real-world library of **241,865 files, 240,280 notes and 3.16 million links (815 million characters of text)** in version 1.25.1, and on a made-up 139,000-note folder used for all pictures in this README.
 
 | Task | Time |
 |---|---|
@@ -163,6 +163,7 @@ Measured on a real-world library of **241,865 files, 240,280 notes and 3.16 mill
 | Full-text search | 50–150 ms |
 | Search index, built in the background | ≈ 40 s, once |
 | Table view over every file (`file.hasLink(this)`) | ≈ 0.3 s |
+| Index update after saving a note | 5–10 ms in the indexer, 0–4 ms in the window (1.25.0: 3.2 s and 0.7–0.9 s) |
 | Quick open by name | ≈ 25 ms |
 | Live query over the whole library | ≈ 0.1 s |
 | Galaxy — one frame | ≈ 1 ms |
@@ -173,7 +174,7 @@ Measured on a real-world library of **241,865 files, 240,280 notes and 3.16 mill
 
 - **A worker thread owns the index** (`indexer.js`): it reads and parses every note, keeps a compact search index (accent-insensitive, 50 MB for the library above) and answers searches and queries. The window only holds a small index — paths plus a `Uint32Array` of links — and reads a note's text when you open it.
 - **Disk cache** (`index-cache`): parsed notes and the resolved link graph are cached, so a reopen shows the folder at once and only `stat`s files in the background.
-- **Incremental updates**: editing, adding or deleting a file re-reads only that file. Changes made by other apps or by sync tools appear within about a second.
+- **Incremental updates**: editing, adding or deleting a file re-reads only that file, and after an edit only that note's links, tags and status are worked out again — the window receives the difference (about 20 bytes for an ordinary edit), not the index. Changes made by other apps or by sync tools appear within about a second.
 - **Graph "Map" engine** (`layout-worker.js`, `src/atlas.js`): the layout is computed once (Pivot MDS plus neighbour smoothing) and cached; drawing uses level of detail on a 2D canvas, so an idle graph costs no CPU.
 - **Graph "Live" engine**: [cosmos.gl](https://github.com/cosmosgl/graph) runs both the force layout and the drawing on the GPU. Links of "hub" notes with more than 1,000 links are hidden by default — one note with 72,000 backlinks alone drops the frame rate from ~120 to ~19 FPS.
 - Limits: 1,000,000 files; up to 1.5 GB of text kept for search (beyond that, search covers part of the folder and says so).

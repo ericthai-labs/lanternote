@@ -75,7 +75,7 @@ async function until(expr, ms = 60000) {
   if (process.env.WEAK) await send('Emulation.setCPUThrottlingRate', { rate: 4 });
   await send('Runtime.enable');
   await send('Page.enable');
-  await send('Page.bringToFront').catch(() => {});
+  if (!process.env.LANTERNOTE_WINDOW) await send('Page.bringToFront').catch(() => {}); // set: the window stays in the background where it was put
   await send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => {});
   const log = (...a) => console.log(...a);
   const body = fs.readFileSync(scriptFile, 'utf8');

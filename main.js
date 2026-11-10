@@ -171,7 +171,7 @@ function watchVault(root) {
     timer = setTimeout(async () => {
       const list = [...changed]; changed.clear();
       try {
-        const res = await ask('update', { changed: list });
+        const res = await ask('update', { changed: list, delta: true });
         if (res && win && !win.isDestroyed()) win.webContents.send('vault:changed', res);
       } catch (e) { console.warn('Update failed:', e.message); }
     }, 700);
@@ -615,8 +615,11 @@ function buildMenu() {
 }
 
 function createWindow() {
+  // LANTERNOTE_WINDOW="x,y" (test runs): open there — another monitor, say — without taking the keyboard focus
+  const at = /^(-?\d+),(-?\d+)$/.exec(process.env.LANTERNOTE_WINDOW || '');
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 420, minHeight: 360,
+    ...(at ? { x: +at[1], y: +at[2], show: false } : {}),
     title: 'Lanternote',
     backgroundColor: '#1e1e1e',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
@@ -630,6 +633,7 @@ function createWindow() {
   win.webContents.on('will-navigate', (e, url) => {
     if (!url.startsWith('file:')) { e.preventDefault(); if (/^(https?|mailto):/i.test(url)) shell.openExternal(url); }
   });
+  if (at) win.once('ready-to-show', () => win.showInactive());
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
   // unsaved edits are written before the window goes away
   let flushedWin = false;

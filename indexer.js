@@ -105,6 +105,12 @@ function saveSearch(soon) {
   };
   if (soon) searchTimer = setTimeout(doSave, soon); else doSave();
 }
+// Writing the cache means serialising every note's entry (seconds on a very large folder, during
+// which the indexer answers nothing). After ordinary edits it therefore waits until the app has
+// been quiet for IDLE_SAVE — and it is written on exit. A cache that misses a few edits costs
+// nothing: the next start re-reads just those notes.
+const IDLE_SAVE = 5 * 60 * 1000;
+const BIG_BATCH = 200; // notes changed at once (a sync): save soon, re-reading them would take a while
 let saveTimer = null;
 function saveCache(soon) {
   clearTimeout(saveTimer);
@@ -134,7 +140,7 @@ function saveCache(soon) {
 function keepText(p, text) {
   if (S.builder && S.opening) return; // a first open shows the vault first; the index is built right after
   if (S.builder) { if (!S.added.has(p)) { S.added.add(p); S.builder.add(p, text); } else S.later.add(p); }
-  else if (S.sidx) { S.sidx.update(p, text); saveSearch(30000); }
+  else if (S.sidx) { S.sidx.update(p, text); saveSearch(IDLE_SAVE); }
 }
 
 async function readNote(p) {
@@ -172,7 +178,7 @@ async function open(root, { instant = false, ensure = null } = {}) {
     for (const [p, m] of S.meta) if (!listed.has(p)) S.stray.set(p, m);
     for (const p of S.stray.keys()) S.meta.delete(p);
     resolveAll();
-    S.snap = saved;
+    S.snap = saved; S.snapVer = S.setVer;
     if (!saved.status || saved.statusDay !== new Date().toDateString()) addStatus(saved);
     S.timing = { cached: true, instant: true, files: S.files.length, notes: S.meta.size };
     saved.timing = S.timing;
@@ -192,7 +198,7 @@ async function open(root, { instant = false, ensure = null } = {}) {
   if (cs && cs.files.length === S.files.length && cs.files.every((f, i) => f === S.files[i]) && md.every((p) => cache.meta.has(p))) {
     S.meta = cache.meta;
     resolveAll();
-    S.snap = cs;
+    S.snap = cs; S.snapVer = S.setVer;
     if (!cs.status || cs.statusDay !== new Date().toDateString()) addStatus(cs);
     S.timing = { walk: t1 - t0, cached: true, files: S.files.length, notes: md.length };
     cs.timing = S.timing;
@@ -330,6 +336,7 @@ function searchDone(gen, t0) {
 
 // ---------------- resolution ----------------
 function resolveAll() {
+  S.setVer = (S.setVer || 0) + 1; // the file list changed: note numbers in older snapshots no longer hold
   S.index = new Map();
   S.files.forEach((p, i) => S.index.set(p, i));
   S.byBase = Core.buildByBase(S.files);
@@ -351,25 +358,12 @@ function resolveAll() {
 }
 
 // Compact, transferable picture of the vault for the window.
-function snapshot() {
-  const files = S.files;
-  const n = files.length;
-  const mtimes = new Float64Array(n);
-  const edges = [];
-  const tagMap = new Map();
+// tag → notes, as three flat tables
+function tagTables() {
+  const files = S.files, n = files.length, tagMap = new Map();
   for (let i = 0; i < n; i++) {
-    const p = files[i];
-    const m = S.meta.get(p);
+    const m = S.meta.get(files[i]);
     if (!m) continue;
-    mtimes[i] = m.mtime;
-    const start = edges.length;
-    for (const raw of m.links) {
-      const j = S.resolveIdx(raw, p);
-      if (j < 0 || j === i) continue;
-      let dup = false;
-      for (let k = start + 1; k < edges.length; k += 2) if (edges[k] === j) { dup = true; break; }
-      if (!dup) edges.push(i, j);
-    }
     for (const t of m.tags) {
       const k = t.toLowerCase();
       let arr = tagMap.get(k);
@@ -384,10 +378,94 @@ function snapshot() {
   tagOff[tagNames.length] = total;
   const tagFiles = new Uint32Array(total);
   tagNames.forEach((t, k) => tagFiles.set(tagMap.get(t), tagOff[k]));
+  return { tagNames, tagOff, tagFiles };
+}
+// the notes a note links to, as written order, once each, never itself
+function outsOf(i, m) {
+  const p = S.files[i], out = [];
+  for (const raw of m.links) { const j = S.resolveIdx(raw, p); if (j >= 0 && j !== i && !out.includes(j)) out.push(j); }
+  return out;
+}
+const revAt = (snap, i) => { // the revision recorded for note i, or null
+  const a = snap.revIdx; let lo = 0, hi = a.length - 1;
+  while (lo <= hi) { const mid = (lo + hi) >> 1; if (a[mid] === i) return snap.revStr[mid]; if (a[mid] < i) lo = mid + 1; else hi = mid - 1; }
+  return null;
+};
+// A few notes were edited and the file list is the same: instead of resolving every link of
+// the folder again (seconds on millions of links), the new snapshot shares each table the edit
+// did not touch with the previous one. S.delta says what differs, for the window.
+// `olds`: Map(path → the note's entry before it was re-read). Returns null when a full build is needed.
+function patchSnapshot(touched, olds) {
+  const prev = S.snap;
+  if (!prev || S.snapVer !== S.setVer || !prev.status || prev.files.length !== S.files.length) return null;
+  if (S.eoffOf !== prev.edges) { S.eoff = Core.edgeOffsets(prev.edges, prev.files.length); S.eoffOf = prev.edges; }
+  const off = S.eoff;
+  if (!off) return null;
+  const today = Date.now();
+  const tagKey = (m) => (m && m.tags && m.tags.length ? m.tags.map((t) => t.toLowerCase()).join('\u0000') : '');
+  const idx = [], outs = [], mt = [];
+  let edgesChanged = false, tagsChanged = false, statusChanged = prev.statusDay !== new Date(today).toDateString();
+  for (const p of new Set(touched)) {
+    const i = S.index.get(p), m = S.meta.get(p);
+    if (i === undefined || !m || prev.files[i] !== p) return null;
+    const o = outsOf(i, m), a = off[i];
+    let same = o.length === off[i + 1] - a;
+    for (let k = 0; same && k < o.length; k++) if (prev.edges[2 * (a + k) + 1] !== o[k]) same = false;
+    if (!same) edgesChanged = true;
+    idx.push(i); mt.push(m.mtime); outs.push(same ? null : Uint32Array.from(o));
+    const old = olds && olds.get(p);
+    if (!old || tagKey(old) !== tagKey(m)) tagsChanged = true;
+    if (!statusChanged) {
+      const d = Core.docStatus(m.fields, today);
+      if (Core.statusByte(d) !== prev.status[i] || (d && d.rev != null ? d.rev.slice(0, 40) : null) !== revAt(prev, i)) statusChanged = true;
+    }
+  }
+  const mtimes = prev.mtimes.slice();
+  idx.forEach((i, k) => { mtimes[i] = mt[k]; });
+  let edges = prev.edges;
+  if (edgesChanged) {
+    const rep = new Map();
+    idx.forEach((i, k) => { if (outs[k]) rep.set(i, outs[k]); });
+    edges = Core.spliceEdges(prev.edges, off, rep);
+  }
+  const snap = { ...prev, mtimes, edges, timing: S.timing };
+  if (tagsChanged) Object.assign(snap, tagTables());
+  if (statusChanged) addStatus(snap);
+  S.snap = snap;
+  S.delta = {
+    idx: Uint32Array.from(idx), mtimes: Float64Array.from(mt), outs, links: edges.length / 2,
+    tags: tagsChanged ? { tagNames: snap.tagNames, tagOff: snap.tagOff, tagFiles: snap.tagFiles } : null,
+    status: statusChanged ? { status: snap.status, revIdx: snap.revIdx, revStr: snap.revStr } : null,
+  };
+  return snap;
+}
+// touched / olds: given after an edit, so that only those notes are worked out again
+function snapshot(touched, olds) {
+  S.delta = null;
+  if (touched && touched.length) { const s = patchSnapshot(touched, olds); if (s) return s; }
+  const files = S.files;
+  const n = files.length;
+  const mtimes = new Float64Array(n);
+  const edges = [];
+  for (let i = 0; i < n; i++) {
+    const p = files[i];
+    const m = S.meta.get(p);
+    if (!m) continue;
+    mtimes[i] = m.mtime;
+    const start = edges.length;
+    for (const raw of m.links) {
+      const j = S.resolveIdx(raw, p);
+      if (j < 0 || j === i) continue;
+      let dup = false;
+      for (let k = start + 1; k < edges.length; k += 2) if (edges[k] === j) { dup = true; break; }
+      if (!dup) edges.push(i, j);
+    }
+  }
   S.snap = {
     root: S.root, name: S.name, files, mtimes, edges: Uint32Array.from(edges),
-    tagNames, tagOff, tagFiles, truncated: files.length >= MAX_FILES, timing: S.timing,
+    ...tagTables(), truncated: files.length >= MAX_FILES, timing: S.timing,
   };
+  S.snapVer = S.setVer;
   addStatus(S.snap);
   return S.snap;
 }
@@ -409,11 +487,13 @@ function addStatus(snap) {
 }
 
 // ---------------- incremental updates ----------------
-async function update(changed) {
+// delta: answer with what changed (see patchSnapshot) instead of the whole snapshot, when possible
+async function update(changed, { delta = false } = {}) {
   if (!S) return null;
   const gen = S.gen;
   let setChanged = false;
   const touched = [];
+  const olds = new Map(); // note → its entry before this update
   const others = [];   // existing files that are not notes (canvas, pictures)
   await pool([...new Set(changed)], IO, async (p) => {
     const abs = path.join(S.root, p);
@@ -448,6 +528,7 @@ async function update(changed) {
     if (isMd(p)) {
       const m = S.meta.get(p);
       if (m && m.mtime === st.mtimeMs && m.size === st.size) return;
+      if (m && !olds.has(p)) olds.set(p, m);
       try { await readNote(p); touched.push(p); } catch { /* locked while syncing — next event retries */ }
     }
   });
@@ -459,8 +540,9 @@ async function update(changed) {
   if (setChanged) { S.files.sort(); resolveAll(); }
   // a big batch of edits (e.g. a sync) → rebuild the search index instead of growing its delta
   if (S.sidx && S.searchReady && S.sidx.delta.size > Math.max(5000, S.meta.size * 0.05)) { startSearchRebuild(); S.searchReady = false; fillSearch(gen).catch(logError); }
-  saveCache(10000);
-  return { snapshot: snapshot(), changed: touched.concat(others) };
+  saveCache(touched.length >= BIG_BATCH ? 10000 : IDLE_SAVE);
+  const snap = snapshot(setChanged ? null : touched, olds);
+  return delta && S.delta ? { delta: S.delta, changed: touched.concat(others) } : { snapshot: snap, changed: touched.concat(others) };
 }
 
 // ---------------- search ----------------
@@ -559,11 +641,11 @@ async function search(q, limit) {
 // Runs a ```dataview block over the whole index; the window only formats.
 const DV_MAX_ROWS = 2000;
 function dvAdjacency() {
-  if (S.dvAdj && S.dvAdj.snap === S.snap) return S.dvAdj;
+  if (S.dvAdj && S.dvAdj.edges === S.snap.edges) return S.dvAdj; // an edit that changed no link keeps it
   const n = S.files.length, e = S.snap.edges;
   const out = Array.from({ length: n }, () => []), inn = Array.from({ length: n }, () => []);
   for (let k = 0; k < e.length; k += 2) { out[e[k]].push(e[k + 1]); inn[e[k + 1]].push(e[k]); }
-  S.dvAdj = { snap: S.snap, out, inn };
+  S.dvAdj = { edges: S.snap.edges, out, inn };
   return S.dvAdj;
 }
 function dvQuery(src, origin) {
@@ -818,7 +900,8 @@ async function snippets(target, sources) {
 // ---------------- message loop ----------------
 const handlers = {
   open: ({ root, exclude, instant, ensure }) => { EXCLUDE = exclude || []; return open(root, { instant, ensure }); },
-  update: ({ changed }) => update(changed),
+  update: ({ changed, delta }) => update(changed, { delta }),
+  snap: () => (S ? S.snap : null),
   search: ({ q, limit }) => (S ? search(q, limit || 300) : { total: 0, hits: [], partial: true, indexed: 0, notes: 0 }),
   snippets: ({ target, sources }) => (S ? snippets(target, sources) : {}),
   mentions: (a) => mentions(a),

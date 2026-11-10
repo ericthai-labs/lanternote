@@ -101,15 +101,27 @@ function buildIndex(d) {
   V.images = V.files.filter((p) => IMG_EXT.test(p));
   V.canvases = V.files.filter((p) => CANVAS_EXT.test(p));
   V.bases = V.files.filter((p) => BASE_EXT.test(p));
-  // document status per note (core.js docStatus) and revisions, from the indexer
-  V.status = d.status && d.status.length === n ? d.status : new Uint8Array(n);
-  V.rev = new Map();
-  if (d.revIdx) for (let k = 0; k < d.revIdx.length; k++) V.rev.set(d.revIdx[k], d.revStr[k]);
+  setStatusTables(d);
   V.imgLc = V.images.map((p) => baseOf(p).toLowerCase());
   V.byBase = Core.buildByBase(V.files);
   V.resolve = Core.makeResolver((p) => V.idx.has(p), V.byBase);
-  // compressed adjacency, both directions
-  const e = d.edges, m = e.length / 2;
+  setEdges(d.edges);
+  setTags(d);
+}
+// document status per note (core.js docStatus) and revisions, from the indexer
+function setStatusTables(d) {
+  const n = V.files.length;
+  V.status = d.status && d.status.length === n ? d.status : new Uint8Array(n);
+  V.rev = new Map();
+  if (d.revIdx) for (let k = 0; k < d.revIdx.length; k++) V.rev.set(d.revIdx[k], d.revStr[k]);
+}
+function setTags(d) {
+  V.tags = new Map();
+  d.tagNames.forEach((t, k) => V.tags.set(t, d.tagFiles.subarray(d.tagOff[k], d.tagOff[k + 1])));
+}
+// compressed adjacency, both directions, from the flat (from, to) list
+function setEdges(e) {
+  const n = V.files.length, m = e.length / 2;
   const csr = (from, to) => {
     const off = new Uint32Array(n + 1);
     for (let k = 0; k < m; k++) off[e[2 * k + from] + 1]++;
@@ -121,8 +133,18 @@ function buildIndex(d) {
   [V.outOff, V.outTo] = csr(0, 1);
   [V.backOff, V.backTo] = csr(1, 0);
   V.edges = e;
-  V.tags = new Map();
-  d.tagNames.forEach((t, k) => V.tags.set(t, d.tagFiles.subarray(d.tagOff[k], d.tagOff[k + 1])));
+}
+// A few notes were edited and the file list is the same: the indexer sends only what differs
+// (see patchSnapshot in indexer.js) — nothing is rebuilt that the edit did not touch.
+function applyDelta(d) {
+  for (let k = 0; k < d.idx.length; k++) V.mtimes[d.idx[k]] = d.mtimes[k];
+  const rep = new Map();
+  for (let k = 0; k < d.idx.length; k++) if (d.outs[k]) rep.set(d.idx[k], d.outs[k]);
+  if (rep.size) { setEdges(Core.spliceEdges(V.edges, V.outOff, rep)); Graph.invalidate(); }
+  if (d.tags) { setTags(d.tags); renderTags(); }
+  if (d.status) { setStatusTables(d.status); renderTree(); }
+  if (g('searchInput').value) runSearch();
+  setStatus(`${V.notes.length.toLocaleString()} notes · ${(V.edges.length / 2).toLocaleString()} links`);
 }
 
 // ---------------- markdown ----------------
@@ -1051,18 +1073,18 @@ function loadVault(data, keepNote) {
 }
 // The indexer noticed edits on disk: swap in the new index and re-show
 // the open note if it was one of the changed files.
-function applyChange({ snapshot, changed }) {
+function applyChange({ snapshot, delta, changed }) {
   for (const p of changed) V.text.delete(p);
   Split.refresh(changed);
-  if (!snapshot) {
+  if (!snapshot && !delta) {
     // only canvases / pictures / view files were rewritten; the index did not change
     if (CanvasView.active() && changed.includes(CanvasView.path)) CanvasView.externalChange();
     if (changed.some((p) => BASE_EXT.test(p))) { if (Ed.active() && changed.includes(Ed.path)) Ed.externalChange(); else DvView.refresh(); }
     return;
   }
   const keep = current;
-  buildIndex(snapshot);
-  afterIndex();
+  if (delta) applyDelta(delta);
+  else { buildIndex(snapshot); afterIndex(); }
   CC.refresh(changed);
   if (!keep) return;
   if (!isNote(keep) && !isBase(keep) && !(CANVAS_EXT.test(keep) && V.idx.has(keep))) { if (Ed.renaming !== keep) toast('The open note was removed or renamed'); return; }

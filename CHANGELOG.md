@@ -2,6 +2,13 @@
 
 All notable changes to Lanternote, newest first. Versions follow `MAJOR.MINOR.PATCH`: the minor number goes up for new features, the patch number for fixes only.
 
+## 1.25.1
+
+### Changed
+- **Saving a note in a very large folder no longer stalls the app.** After every save the indexer used to resolve every link of the folder again and send the whole index to the window, which rebuilt its tables. Now only the saved note is worked out again and only what differs is sent. Measured on a library of 241,868 files and 3.16 million links: the indexer is busy for 5–10 ms instead of 3.2 s, about 20 bytes are sent instead of 40 MB (more when links, tags or the document status change), and the window is blocked for 0–4 ms instead of 0.7–0.9 s; the window shows the change about 0.75 s after the file is written, 0.7 s of which is the deliberate wait for the file to settle. Adding, deleting or renaming a file still refreshes the whole index.
+- **The index cache is written when the app has been quiet for five minutes, and on exit** — no longer ten seconds after every edit, which kept the indexer busy for about 2.7 s on that library. A large batch of changes (a sync) is still saved soon. If the app is closed abruptly, the next start re-reads just the notes edited since.
+- Queries and table views keep their link tables across edits that change no link.
+
 ## 1.25.0
 
 ### Added

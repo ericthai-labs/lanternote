@@ -38,6 +38,7 @@ On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs bot
 | `selection.js` (7 steps) | as `editing.js`; adds its own note | `TV=<folder> node scripts/drive.js <folder> tests/selection.js` |
 | `doc-status-ui.js` (9 steps) | as `editing.js`; adds its own notes | `TV=<folder> node scripts/drive.js <folder> tests/doc-status-ui.js` |
 | `citation.js` (7 steps) | as `editing.js`; adds its own notes | `TV=<folder> node scripts/drive.js <folder> tests/citation.js` |
+| `delta-ui.js` (11 steps) | as `editing.js`; changes notes on disk | `TV=<folder> node scripts/drive.js <folder> tests/delta-ui.js` |
 | `canvas.js` (17 steps) | made by `node tests/make-canvas-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/canvas.js` |
 | `dataview.js` (15 steps) | made by `node tests/make-dv-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/dataview.js` |
 | `kanban.js` (25 steps) | made by `node tests/make-kanban-vault.js <empty folder>` | `TV=<folder> node scripts/drive.js <folder> tests/kanban.js` |
@@ -49,8 +50,11 @@ On Linux without a display, use `xvfb-run -a node tests/run-all.js`. CI runs bot
 | `search.js` (28 steps, no `drive.js`) | makes its own temporary folder and cache | `node tests/search.js` |
 | `bases.js` (65 steps, no `drive.js`) | makes its own temporary folder (20,000 notes) and cache | `node tests/bases.js` |
 | `doc-status.js` (33 steps, no `drive.js`) | makes its own temporary folder and cache | `node tests/doc-status.js` |
+| `update-delta.js` (32 steps, no `drive.js`) | makes its own temporary folder and caches; after every edit compares the patched index with one built from nothing | `node tests/update-delta.js` |
 | `index-cache.js` (8 steps, no `drive.js`) | makes its own temporary folder (20,000 notes) and cache | `node tests/index-cache.js` |
 | `map-weak-pc.js` | a large folder (read only) | `WEAK=1 node scripts/drive.js <folder> tests/map-weak-pc.js` |
+
+`LANTERNOTE_WINDOW="-1900,40"` (any `x,y`) opens the test windows at that position — a second monitor, for instance — without taking the keyboard focus, so the tests can run while you work.
 
 Options for `scripts/drive.js`: `APP_EXE="dist/win-unpacked/Lanternote.exe"` tests a packaged build; `WEAK=1` imitates a low-end PC (no GPU, 4× slower CPU); `FRESH_PROFILE=1` starts with empty settings (the app then opens no folder); `KEEP_PROFILE=1` keeps the settings of the previous run (an upgrade: run an old build, then the new one with this); `THEME=dark` for screenshots.
 

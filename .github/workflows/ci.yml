@@ -45,6 +45,8 @@ jobs:
         run: node tests/bases.js
       - name: Document status
         run: node tests/doc-status.js
+      - name: Edits as deltas
+        run: node tests/update-delta.js
       - name: UI scenarios (Linux, virtual display)
         if: runner.os == 'Linux'
         run: |
